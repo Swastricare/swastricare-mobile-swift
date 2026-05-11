@@ -51,9 +51,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.swastricare.health.data.model.AppUser
+import com.swastricare.health.R
+import com.swastricare.health.ui.theme.AITeal
 import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PremiumColor
 import com.swastricare.health.ui.theme.SecondaryColor
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import com.swastricare.health.ui.components.TrackScreen
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -79,6 +84,7 @@ fun SettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    var showAboutSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(signOutEvent) {
         if (signOutEvent) {
@@ -214,9 +220,7 @@ fun SettingsScreen(
                             label = "About",
                             subtitle = "Version ${viewModel.appVersion}",
                             iconTint = SettingsIconColor.Brand,
-                            onClick = {
-                                scope.launch { snackbarHostState.showSnackbar("About — coming soon") }
-                            }
+                            onClick = { showAboutSheet = true }
                         )
                     }
                 }
@@ -258,6 +262,12 @@ fun SettingsScreen(
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)
+        )
+
+        AboutAppSheet(
+            show = showAboutSheet,
+            version = viewModel.appVersion,
+            onDismiss = { showAboutSheet = false }
         )
     }
 }
@@ -440,6 +450,124 @@ private fun SettingsLegalContent(title: String, content: String, onDismiss: () -
         ) {
             Text("Close")
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AboutAppSheet(
+    show: Boolean,
+    version: String,
+    onDismiss: () -> Unit
+) {
+    if (!show) return
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(AITeal.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+                    contentDescription = "SwastriCare",
+                    modifier = Modifier.size(88.dp)
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                text = "SwastriCare",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = AppColors.onSurface
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = "Version $version",
+                fontSize = 13.sp,
+                color = AppColors.onSurface.copy(alpha = 0.6f)
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            Text(
+                text = "Your personal health companion. Track hydration, medications, vitals, activity, diet and cycles — all in one place, designed for India.",
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                color = AppColors.onSurface.copy(alpha = 0.75f),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(AppColors.surfaceVariant.copy(alpha = 0.4f))
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                AboutInfoRow(label = "Build", value = version)
+                AboutInfoRow(label = "Developer", value = "Onwords")
+                AboutInfoRow(label = "Support", value = "support@swastricare.com")
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            Text(
+                text = "© 2026 Onwords. All rights reserved.",
+                fontSize = 12.sp,
+                color = AppColors.onSurface.copy(alpha = 0.5f)
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AITeal)
+            ) {
+                Text("Close", color = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AboutInfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            color = AppColors.onSurface.copy(alpha = 0.6f)
+        )
+        Text(
+            text = value,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = AppColors.onSurface
+        )
     }
 }
 

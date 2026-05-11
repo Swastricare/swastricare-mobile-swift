@@ -25,7 +25,6 @@ struct ProfileView: View {
     @State private var showRemindersSettings = false
     @State private var showActivityGoals = false
     @State private var showFamilyComingSoon = false
-    @State private var showAboutComingSoon = false
     @State private var showFamilyFromDeepLink = false
     @State private var deepLinkInviteCode: String?
 
@@ -102,11 +101,6 @@ struct ProfileView: View {
         } message: {
             Text("Coming soon")
         }
-        .alert("About", isPresented: $showAboutComingSoon) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Coming soon")
-        }
         .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") { viewModel.clearError() }
         } message: {
@@ -117,17 +111,19 @@ struct ProfileView: View {
             case .terms: TermsContentView()
             case .privacy: PrivacyContentView()
             case .appUpdate: ForceUpdateView(appVersionService: appVersionService, onSkip: { activeSheet = nil })
+            case .about: AboutContentView(version: viewModel.appVersion)
             }
         }
     }
 
     enum ProfileSheet: Identifiable {
-        case terms, privacy, appUpdate
+        case terms, privacy, appUpdate, about
         var id: String {
             switch self {
             case .terms: return "terms"
             case .privacy: return "privacy"
             case .appUpdate: return "appUpdate"
+            case .about: return "about"
             }
         }
     }
@@ -322,7 +318,7 @@ struct ProfileView: View {
                 label: "About",
                 subtitle: "Version \(viewModel.appVersion)",
                 tint: aiTeal
-            ) { showAboutComingSoon = true }
+            ) { activeSheet = .about }
         }
     }
 
@@ -607,6 +603,108 @@ struct HealthProfileRow: View {
                 .foregroundColor(.secondary)
                 .lineLimit(2)
                 .multilineTextAlignment(.trailing)
+        }
+    }
+}
+
+// MARK: - About Content View
+
+struct AboutContentView: View {
+    let version: String
+    @Environment(\.dismiss) private var dismiss
+
+    private let aiTeal = Color(hex: "22C5A6")
+    private let mutedInk = Color(hex: "0F2027")
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.white.ignoresSafeArea()
+
+                ScrollView {
+                    VStack(spacing: 20) {
+                        Spacer().frame(height: 16)
+
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 22)
+                                .fill(aiTeal.opacity(0.12))
+                                .frame(width: 96, height: 96)
+                            Image(systemName: "heart.text.square.fill")
+                                .font(.system(size: 48, weight: .semibold))
+                                .foregroundColor(aiTeal)
+                        }
+
+                        VStack(spacing: 4) {
+                            Text("Swastricare")
+                                .font(.poppins(.bold, size: 22))
+                                .foregroundColor(mutedInk)
+                            Text("Version \(version)")
+                                .font(.poppins(.regular, size: 13))
+                                .foregroundColor(mutedInk.opacity(0.6))
+                        }
+
+                        Text("Your personal health companion. Track hydration, medications, vitals, activity, diet and cycles — all in one place, designed for India.")
+                            .font(.poppins(.regular, size: 14))
+                            .foregroundColor(mutedInk.opacity(0.75))
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(4)
+                            .padding(.horizontal, 8)
+
+                        VStack(spacing: 12) {
+                            AboutInfoRow(label: "Build", value: version)
+                            Divider().background(mutedInk.opacity(0.08))
+                            AboutInfoRow(label: "Developer", value: "Onwords")
+                            Divider().background(mutedInk.opacity(0.08))
+                            AboutInfoRow(label: "Support", value: "support@swastricare.com")
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color(hex: "F2F4F5"))
+                        )
+
+                        Text("© 2026 Onwords. All rights reserved.")
+                            .font(.poppins(.regular, size: 12))
+                            .foregroundColor(mutedInk.opacity(0.5))
+
+                        Spacer().frame(height: 8)
+
+                        Button(action: { dismiss() }) {
+                            Text("Close")
+                                .font(.poppins(.semiBold, size: 15))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                                .background(aiTeal)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 32)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+}
+
+private struct AboutInfoRow: View {
+    let label: String
+    let value: String
+    private let ink = Color(hex: "0F2027")
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.poppins(.regular, size: 13))
+                .foregroundColor(ink.opacity(0.6))
+            Spacer()
+            Text(value)
+                .font(.poppins(.medium, size: 13))
+                .foregroundColor(ink)
+                .lineLimit(1)
+                .truncationMode(.middle)
         }
     }
 }
