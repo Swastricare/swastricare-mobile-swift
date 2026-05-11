@@ -142,11 +142,8 @@ fun SettingsScreen(
                             icon = Icons.Outlined.People,
                             label = "Family",
                             subtitle = "Manage your family group",
-                            valueText = "Coming soon",
                             iconTint = SettingsIconColor.Brand,
-                            onClick = {
-                                scope.launch { snackbarHostState.showSnackbar("Family — coming soon") }
-                            }
+                            onClick = onNavigateToFamily
                         )
                         NewRowDivider()
                         NewSettingsRow(

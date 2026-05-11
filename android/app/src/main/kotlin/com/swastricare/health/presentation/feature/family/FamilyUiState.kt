@@ -18,6 +18,7 @@ data class FamilyUiState(
     val successMessage: String? = null,
     val inviteCode: String = "",
     val joinCode: String = "",
+    val groupName: String = "",
     val showLeaveConfirmation: Boolean = false,
     val showRemoveMemberDialog: Boolean = false,
     val memberToRemove: FamilyMember? = null

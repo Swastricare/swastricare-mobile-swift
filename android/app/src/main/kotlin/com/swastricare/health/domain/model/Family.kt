@@ -4,23 +4,30 @@ import java.time.LocalDateTime
 
 /**
  * Domain model for a Family Group.
- * Clean architecture: independent of data layer implementation.
  */
 data class FamilyGroup(
     val id: String,
     val name: String,
-    val createdBy: String,
+    val ownerUserId: String,
     val inviteCode: String? = null,
     val createdAt: LocalDateTime? = null
-)
+) {
+    // Back-compat alias for callers still using the older name.
+    val createdBy: String get() = ownerUserId
+}
 
 /**
  * Domain model for a Family Member.
+ *
+ * - [healthProfileId] is the FK to `health_profiles` and what `family_members` actually stores.
+ * - [userId] is the auth user id derived from the joined `health_profiles.user_id` row.
+ *   It may be null if the join was not requested.
  */
 data class FamilyMember(
     val id: String,
     val groupId: String,
-    val userId: String,
+    val healthProfileId: String,
+    val userId: String? = null,
     val role: FamilyRole,
     val fullName: String? = null,
     val avatarUrl: String? = null,
@@ -37,21 +44,32 @@ data class FamilyMember(
 }
 
 /**
- * Domain model for Family Role enumeration.
+ * Family role enum.
+ *
+ * Database values follow the schema:
+ *   role IN ('owner', 'caregiver', 'viewer', 'limited')
+ *
+ * In-app names are kept as OWNER/ADMIN/MEMBER for back-compat with existing UI code.
+ *   ADMIN  ↔ "caregiver"
+ *   MEMBER ↔ "viewer" (also accepts "limited")
  */
 enum class FamilyRole(val dbValue: String, val displayName: String) {
     OWNER("owner", "Owner"),
-    ADMIN("admin", "Admin"),
-    MEMBER("member", "Member");
+    ADMIN("caregiver", "Caregiver"),
+    MEMBER("viewer", "Member");
 
     companion object {
-        fun fromDb(value: String): FamilyRole =
-            entries.firstOrNull { it.dbValue == value } ?: MEMBER
+        fun fromDb(value: String): FamilyRole = when (value.lowercase()) {
+            "owner" -> OWNER
+            "caregiver", "admin" -> ADMIN
+            "viewer", "member", "limited" -> MEMBER
+            else -> MEMBER
+        }
     }
 }
 
 /**
- * Domain model for a Family Invitation.
+ * Invitation snapshot returned to UI for sharing.
  */
 data class FamilyInvitation(
     val code: String,
@@ -64,12 +82,12 @@ data class FamilyInvitation(
 }
 
 /**
- * Domain model for Family Permissions.
+ * Per-member permissions (column subset on family_members).
  */
 data class FamilyPermissions(
     val memberId: String,
-    val canViewHealthData: Boolean = false,
+    val canViewHealthData: Boolean = true,
     val canEditHealthData: Boolean = false,
     val canManageMedications: Boolean = false,
-    val canReceiveNotifications: Boolean = false
+    val canReceiveNotifications: Boolean = true
 )

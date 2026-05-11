@@ -186,6 +186,19 @@ class FamilyViewModel @Inject constructor(
         _uiState.update { it.copy(joinCode = code) }
     }
 
+    fun updateGroupName(name: String) {
+        _uiState.update { it.copy(groupName = name) }
+    }
+
+    fun createFamilyGroup() {
+        val name = _uiState.value.groupName.trim()
+        if (name.isBlank()) {
+            _uiState.update { it.copy(error = "Please enter a group name") }
+            return
+        }
+        createFamilyGroup(name)
+    }
+
     fun joinWithCode() {
         val code = _uiState.value.joinCode.trim()
         if (code.isBlank()) {

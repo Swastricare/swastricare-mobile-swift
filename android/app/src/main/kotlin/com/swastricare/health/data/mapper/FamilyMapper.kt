@@ -12,165 +12,98 @@ import com.swastricare.health.domain.model.FamilyMember
 import com.swastricare.health.domain.model.FamilyPermissions
 import com.swastricare.health.domain.model.FamilyRole
 import java.time.LocalDateTime
+import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
 
-/**
- * Mapper for converting between Family DTOs and Domain models.
- */
 object FamilyMapper {
 
-    private val isoFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+    private val isoLocalFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
-    // ── FamilyGroup: DTO → Domain ──
+    // ── FamilyGroup ──
 
-    /**
-     * Maps FamilyGroupDto (API/DB) to FamilyGroup (Domain).
-     */
-    fun toDomain(dto: FamilyGroupDto): FamilyGroup {
-        return FamilyGroup(
-            id = dto.id,
-            name = dto.name,
-            createdBy = dto.createdBy,
-            inviteCode = dto.inviteCode,
-            createdAt = dto.createdAt?.let { parseDateTime(it) }
-        )
-    }
+    fun toDomain(dto: FamilyGroupDto): FamilyGroup = FamilyGroup(
+        id = dto.id,
+        name = dto.name,
+        ownerUserId = dto.ownerUserId,
+        inviteCode = dto.inviteCode,
+        createdAt = dto.createdAt?.let { parseDateTime(it) }
+    )
 
-    /**
-     * Maps list of FamilyGroupDto to domain models.
-     */
-    fun toDomainList(dtos: List<FamilyGroupDto>): List<FamilyGroup> {
-        return dtos.map { toDomain(it) }
-    }
+    fun toDomainList(dtos: List<FamilyGroupDto>): List<FamilyGroup> = dtos.map { toDomain(it) }
 
-    // ── FamilyGroup: Domain → DTO ──
-
-    /**
-     * Maps FamilyGroup (Domain) to CreateFamilyGroupDto (API).
-     */
-    fun toCreateDto(group: FamilyGroup): CreateFamilyGroupDto {
-        return CreateFamilyGroupDto(
+    fun toCreateDto(group: FamilyGroup, inviteCode: String? = null): CreateFamilyGroupDto =
+        CreateFamilyGroupDto(
             id = group.id,
             name = group.name,
-            createdBy = group.createdBy
+            ownerUserId = group.ownerUserId,
+            inviteCode = inviteCode ?: group.inviteCode
         )
-    }
 
-    // ── FamilyMember: DTO → Domain ──
+    // ── FamilyMember ──
 
-    /**
-     * Maps FamilyMemberDto (API/DB) to FamilyMember (Domain).
-     */
-    fun memberToDomain(dto: FamilyMemberDto): FamilyMember {
-        return FamilyMember(
-            id = dto.id,
-            groupId = dto.groupId,
-            userId = dto.userId,
-            role = FamilyRole.fromDb(dto.role),
-            fullName = dto.fullName,
-            avatarUrl = dto.avatarUrl,
-            joinedAt = dto.joinedAt?.let { parseDateTime(it) }
-        )
-    }
+    fun memberToDomain(dto: FamilyMemberDto): FamilyMember = FamilyMember(
+        id = dto.id,
+        groupId = dto.familyGroupId,
+        healthProfileId = dto.healthProfileId,
+        userId = dto.healthProfile?.userId,
+        role = FamilyRole.fromDb(dto.role),
+        fullName = dto.healthProfile?.fullName,
+        avatarUrl = dto.healthProfile?.avatarUrl,
+        joinedAt = dto.joinedAt?.let { parseDateTime(it) }
+    )
 
-    /**
-     * Maps list of FamilyMemberDto to domain models.
-     */
-    fun membersToDomainList(dtos: List<FamilyMemberDto>): List<FamilyMember> {
-        return dtos.map { memberToDomain(it) }
-    }
+    fun membersToDomainList(dtos: List<FamilyMemberDto>): List<FamilyMember> =
+        dtos.map { memberToDomain(it) }
 
-    // ── FamilyMember: Domain → DTO ──
+    // ── FamilyInvitation ──
 
-    /**
-     * Maps FamilyMember (Domain) to CreateFamilyMemberDto (API).
-     */
-    fun memberToCreateDto(member: FamilyMember): CreateFamilyMemberDto {
-        return CreateFamilyMemberDto(
-            id = member.id,
-            groupId = member.groupId,
-            userId = member.userId,
-            role = member.role.dbValue,
-            fullName = member.fullName
-        )
-    }
+    fun invitationToDomain(dto: FamilyInviteDto): FamilyInvitation = FamilyInvitation(
+        code = dto.code,
+        groupId = dto.groupId,
+        groupName = dto.groupName,
+        expiresAt = dto.expiresAt?.let { parseDateTime(it) }
+    )
 
-    // ── FamilyInvitation: DTO → Domain ──
+    fun invitationToDto(invitation: FamilyInvitation): FamilyInviteDto = FamilyInviteDto(
+        code = invitation.code,
+        groupId = invitation.groupId,
+        groupName = invitation.groupName,
+        expiresAt = invitation.expiresAt?.let { formatDateTime(it) }
+    )
 
-    /**
-     * Maps FamilyInviteDto to FamilyInvitation (Domain).
-     */
-    fun invitationToDomain(dto: FamilyInviteDto): FamilyInvitation {
-        return FamilyInvitation(
-            code = dto.code,
-            groupId = dto.groupId,
-            groupName = dto.groupName,
-            expiresAt = dto.expiresAt?.let { parseDateTime(it) }
-        )
-    }
+    // ── FamilyPermissions ──
 
-    // ── FamilyInvitation: Domain → DTO ──
+    fun permissionsToDomain(dto: FamilyPermissionsDto): FamilyPermissions = FamilyPermissions(
+        memberId = dto.memberId,
+        canViewHealthData = dto.canViewHealthData,
+        canEditHealthData = dto.canEditHealthData,
+        canManageMedications = dto.canManageMedications,
+        canReceiveNotifications = dto.canReceiveNotifications
+    )
 
-    /**
-     * Maps FamilyInvitation (Domain) to FamilyInviteDto.
-     */
-    fun invitationToDto(invitation: FamilyInvitation): FamilyInviteDto {
-        return FamilyInviteDto(
-            code = invitation.code,
-            groupId = invitation.groupId,
-            groupName = invitation.groupName,
-            expiresAt = invitation.expiresAt?.let { formatDateTime(it) }
-        )
-    }
-
-    // ── FamilyPermissions: DTO → Domain ──
-
-    /**
-     * Maps FamilyPermissionsDto to FamilyPermissions (Domain).
-     */
-    fun permissionsToDomain(dto: FamilyPermissionsDto): FamilyPermissions {
-        return FamilyPermissions(
-            memberId = dto.memberId,
-            canViewHealthData = dto.canViewHealthData,
-            canEditHealthData = dto.canEditHealthData,
-            canManageMedications = dto.canManageMedications,
-            canReceiveNotifications = dto.canReceiveNotifications
-        )
-    }
-
-    // ── FamilyPermissions: Domain → DTO ──
-
-    /**
-     * Maps FamilyPermissions (Domain) to FamilyPermissionsDto.
-     */
-    fun permissionsToDto(permissions: FamilyPermissions): FamilyPermissionsDto {
-        return FamilyPermissionsDto(
-            memberId = permissions.memberId,
-            canViewHealthData = permissions.canViewHealthData,
-            canEditHealthData = permissions.canEditHealthData,
-            canManageMedications = permissions.canManageMedications,
-            canReceiveNotifications = permissions.canReceiveNotifications
-        )
-    }
+    fun permissionsToDto(permissions: FamilyPermissions): FamilyPermissionsDto = FamilyPermissionsDto(
+        memberId = permissions.memberId,
+        canViewHealthData = permissions.canViewHealthData,
+        canEditHealthData = permissions.canEditHealthData,
+        canManageMedications = permissions.canManageMedications,
+        canReceiveNotifications = permissions.canReceiveNotifications
+    )
 
     // ── DateTime helpers ──
 
-    /**
-     * Parse ISO datetime string to LocalDateTime.
-     */
     private fun parseDateTime(dateTime: String): LocalDateTime {
+        // Supabase returns timestamptz like "2026-05-11T08:23:01.123456+00:00".
         return try {
-            LocalDateTime.parse(dateTime, isoFormatter)
-        } catch (e: Exception) {
-            // Fallback: try with 'T' separator if missing
-            LocalDateTime.parse(dateTime.replace(" ", "T"), isoFormatter)
+            OffsetDateTime.parse(dateTime).toLocalDateTime()
+        } catch (_: Exception) {
+            try {
+                LocalDateTime.parse(dateTime, isoLocalFormatter)
+            } catch (_: Exception) {
+                LocalDateTime.parse(dateTime.replace(" ", "T").substringBefore("+"), isoLocalFormatter)
+            }
         }
     }
 
-    /**
-     * Format LocalDateTime to ISO string.
-     */
-    private fun formatDateTime(dateTime: LocalDateTime): String {
-        return dateTime.format(isoFormatter)
-    }
+    private fun formatDateTime(dateTime: LocalDateTime): String =
+        dateTime.format(isoLocalFormatter)
 }

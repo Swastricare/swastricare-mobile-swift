@@ -7,7 +7,6 @@ import com.swastricare.health.data.mapper.FamilyMapper
 import com.swastricare.health.data.remote.dto.family.CreateFamilyGroupDto
 import com.swastricare.health.data.remote.dto.family.CreateFamilyMemberDto
 import com.swastricare.health.data.remote.dto.family.FamilyGroupDto
-import com.swastricare.health.data.remote.dto.family.FamilyInviteDto
 import com.swastricare.health.data.remote.dto.family.FamilyMemberDto
 import com.swastricare.health.data.remote.dto.family.FamilyPermissionsDto
 import com.swastricare.health.domain.model.FamilyGroup
@@ -15,8 +14,10 @@ import com.swastricare.health.domain.model.FamilyInvitation
 import com.swastricare.health.domain.model.FamilyMember
 import com.swastricare.health.domain.model.FamilyPermissions
 import com.swastricare.health.domain.repository.FamilyRepository
+import com.swastricare.health.domain.repository.ProfileRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.security.SecureRandom
@@ -25,16 +26,27 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Implementation of FamilyRepository using Supabase.
- * Handles all family-related data operations.
+ * Supabase-backed implementation of [FamilyRepository] that matches the actual schema:
+ *   - family_groups(id, owner_user_id, name, invite_code, ...)
+ *   - family_members(id, family_group_id, health_profile_id, role, status,
+ *                    can_*, added_by_user_id, joined_at, ...)
+ *
+ * Members reference a health_profile, not the auth user directly. We resolve the current
+ * user's `health_profile_id` via [ProfileRepository] before any member query.
  */
 @Singleton
 class FamilyRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
+    private val profileRepository: ProfileRepository,
     private val logger: Logger
 ) : FamilyRepository {
 
     private val tag = "FamilyRepository"
+
+    // PostgREST embed: select members + their joined health_profile fields
+    private val memberSelectColumns = Columns.raw(
+        "*, health_profiles(user_id, full_name, avatar_url)"
+    )
 
     // ── Family Group Operations ──
 
@@ -42,36 +54,52 @@ class FamilyRepositoryImpl @Inject constructor(
         return try {
             logger.d(tag, "Creating family group: $name for user: $userId")
 
+            val healthProfileId = resolveHealthProfileId(userId)
+                ?: return ResultWrapper.Error(
+                    AppException.ValidationException.Custom(
+                        "Health profile not found. Please complete onboarding."
+                    )
+                )
+
             val groupId = UUID.randomUUID().toString()
-            val createDto = CreateFamilyGroupDto(
-                id = groupId,
-                name = name,
-                createdBy = userId
-            )
+            val inviteCode = generateRandomCode()
 
-            // Create the family group
             supabaseClient.from("family_groups")
-                .insert(createDto)
+                .insert(
+                    CreateFamilyGroupDto(
+                        id = groupId,
+                        name = name,
+                        ownerUserId = userId,
+                        inviteCode = inviteCode
+                    )
+                )
 
-            // Add creator as owner
-            val memberDto = CreateFamilyMemberDto(
-                id = UUID.randomUUID().toString(),
-                groupId = groupId,
-                userId = userId,
-                role = "owner"
-            )
+            // Add creator as the owner family_member
             supabaseClient.from("family_members")
-                .insert(memberDto)
+                .insert(
+                    CreateFamilyMemberDto(
+                        id = UUID.randomUUID().toString(),
+                        familyGroupId = groupId,
+                        healthProfileId = healthProfileId,
+                        addedByUserId = userId,
+                        role = "owner",
+                        status = "active",
+                        canView = true,
+                        canEdit = true,
+                        canAddMedications = true,
+                        canAddAppointments = true,
+                        canViewMedicalDocuments = true,
+                        canManageMembers = true
+                    )
+                )
 
-            // Fetch the created group
-            val groups = supabaseClient.from("family_groups")
-                .select {
-                    filter { eq("id", groupId) }
-                }
+            val groupDto = supabaseClient.from("family_groups")
+                .select { filter { eq("id", groupId) } }
                 .decodeList<FamilyGroupDto>()
-
-            val groupDto = groups.firstOrNull()
-                ?: return ResultWrapper.Error(AppException.ApiException.ServerError("Failed to create family group"))
+                .firstOrNull()
+                ?: return ResultWrapper.Error(
+                    AppException.ApiException.ServerError("Failed to create family group")
+                )
 
             logger.i(tag, "Family group created successfully: ${groupDto.id}")
             ResultWrapper.Success(FamilyMapper.toDomain(groupDto))
@@ -85,34 +113,36 @@ class FamilyRepositoryImpl @Inject constructor(
         return try {
             logger.d(tag, "Fetching family group for user: $userId")
 
-            // Find the member record for this user
-            val members = supabaseClient.from("family_members")
-                .select {
-                    filter { eq("user_id", userId) }
-                }
-                .decodeList<FamilyMemberDto>()
-
-            val member = members.firstOrNull()
-            if (member == null) {
-                logger.d(tag, "User not a member of any family group")
-                return ResultWrapper.Success(null)
-            }
-
-            // Fetch the group
-            val groups = supabaseClient.from("family_groups")
-                .select {
-                    filter { eq("id", member.groupId) }
-                }
+            // 1. Owner check
+            val owned = supabaseClient.from("family_groups")
+                .select { filter { eq("owner_user_id", userId) } }
                 .decodeList<FamilyGroupDto>()
-
-            val groupDto = groups.firstOrNull()
-            if (groupDto == null) {
-                logger.w(tag, "Member record exists but group not found")
-                return ResultWrapper.Success(null)
+            owned.firstOrNull()?.let {
+                return ResultWrapper.Success(FamilyMapper.toDomain(it))
             }
 
-            logger.i(tag, "Family group fetched: ${groupDto.id}")
-            ResultWrapper.Success(FamilyMapper.toDomain(groupDto))
+            // 2. Member check via health_profile
+            val healthProfileId = resolveHealthProfileId(userId)
+                ?: return ResultWrapper.Success(null)
+
+            val memberRows = supabaseClient.from("family_members")
+                .select(Columns.raw("family_group_id")) {
+                    filter {
+                        eq("health_profile_id", healthProfileId)
+                        eq("status", "active")
+                    }
+                }
+                .decodeList<MemberGroupRef>()
+
+            val groupId = memberRows.firstOrNull()?.familyGroupId
+                ?: return ResultWrapper.Success(null)
+
+            val groupDto = supabaseClient.from("family_groups")
+                .select { filter { eq("id", groupId) } }
+                .decodeList<FamilyGroupDto>()
+                .firstOrNull()
+
+            ResultWrapper.Success(groupDto?.let { FamilyMapper.toDomain(it) })
         } catch (e: Exception) {
             logger.e(tag, "Error fetching family group", e)
             ResultWrapper.Error(AppException.UnknownException(cause = e))
@@ -121,16 +151,10 @@ class FamilyRepositoryImpl @Inject constructor(
 
     override suspend fun updateFamilyGroup(groupId: String, name: String): ResultWrapper<Unit> {
         return try {
-            logger.d(tag, "Updating family group: $groupId")
-
             supabaseClient.from("family_groups")
-                .update(
-                    buildJsonObject { put("name", name) }
-                ) {
+                .update(buildJsonObject { put("name", name) }) {
                     filter { eq("id", groupId) }
                 }
-
-            logger.i(tag, "Family group updated successfully")
             ResultWrapper.Success(Unit)
         } catch (e: Exception) {
             logger.e(tag, "Error updating family group", e)
@@ -142,15 +166,15 @@ class FamilyRepositoryImpl @Inject constructor(
 
     override suspend fun getMembers(groupId: String): ResultWrapper<List<FamilyMember>> {
         return try {
-            logger.d(tag, "Fetching members for group: $groupId")
-
             val memberDtos = supabaseClient.from("family_members")
-                .select {
-                    filter { eq("group_id", groupId) }
+                .select(memberSelectColumns) {
+                    filter {
+                        eq("family_group_id", groupId)
+                        eq("status", "active")
+                    }
                 }
                 .decodeList<FamilyMemberDto>()
 
-            logger.i(tag, "Fetched ${memberDtos.size} members")
             ResultWrapper.Success(FamilyMapper.membersToDomainList(memberDtos))
         } catch (e: Exception) {
             logger.e(tag, "Error fetching members", e)
@@ -166,43 +190,57 @@ class FamilyRepositoryImpl @Inject constructor(
         return try {
             logger.d(tag, "Joining group with code: $inviteCode")
 
-            // Find group by invite code
-            val groups = supabaseClient.from("family_groups")
-                .select {
-                    filter { eq("invite_code", inviteCode) }
-                }
+            val groupDto = supabaseClient.from("family_groups")
+                .select { filter { eq("invite_code", inviteCode.uppercase()) } }
                 .decodeList<FamilyGroupDto>()
-
-            val groupDto = groups.firstOrNull()
+                .firstOrNull()
                 ?: return ResultWrapper.Error(
                     AppException.ValidationException.Custom("Invalid invite code")
                 )
 
-            // Check if user is already a member
-            val existingMembers = supabaseClient.from("family_members")
-                .select {
-                    filter { eq("user_id", userId) }
-                }
-                .decodeList<FamilyMemberDto>()
+            val healthProfileId = resolveHealthProfileId(userId)
+                ?: return ResultWrapper.Error(
+                    AppException.ValidationException.Custom(
+                        "Health profile not found. Please complete onboarding."
+                    )
+                )
 
-            if (existingMembers.isNotEmpty()) {
+            // Already a member?
+            val existing = supabaseClient.from("family_members")
+                .select(Columns.raw("id")) {
+                    filter {
+                        eq("family_group_id", groupDto.id)
+                        eq("health_profile_id", healthProfileId)
+                    }
+                }
+                .decodeList<MemberIdOnly>()
+
+            if (existing.isNotEmpty()) {
                 return ResultWrapper.Error(
-                    AppException.ValidationException.Custom("You are already a member of a family group")
+                    AppException.ValidationException.Custom(
+                        "You are already a member of this family group"
+                    )
                 )
             }
 
-            // Add member
-            val memberDto = CreateFamilyMemberDto(
-                id = UUID.randomUUID().toString(),
-                groupId = groupDto.id,
-                userId = userId,
-                role = "member",
-                fullName = fullName
-            )
             supabaseClient.from("family_members")
-                .insert(memberDto)
+                .insert(
+                    CreateFamilyMemberDto(
+                        id = UUID.randomUUID().toString(),
+                        familyGroupId = groupDto.id,
+                        healthProfileId = healthProfileId,
+                        addedByUserId = userId,
+                        role = "viewer",
+                        status = "active",
+                        canView = true,
+                        canEdit = false,
+                        canAddMedications = false,
+                        canAddAppointments = false,
+                        canViewMedicalDocuments = true,
+                        canManageMembers = false
+                    )
+                )
 
-            logger.i(tag, "User joined group successfully: ${groupDto.id}")
             ResultWrapper.Success(FamilyMapper.toDomain(groupDto))
         } catch (e: Exception) {
             logger.e(tag, "Error joining group", e)
@@ -212,14 +250,8 @@ class FamilyRepositoryImpl @Inject constructor(
 
     override suspend fun leaveGroup(memberId: String): ResultWrapper<Unit> {
         return try {
-            logger.d(tag, "Leaving group for member: $memberId")
-
             supabaseClient.from("family_members")
-                .delete {
-                    filter { eq("id", memberId) }
-                }
-
-            logger.i(tag, "Member left group successfully")
+                .delete { filter { eq("id", memberId) } }
             ResultWrapper.Success(Unit)
         } catch (e: Exception) {
             logger.e(tag, "Error leaving group", e)
@@ -229,46 +261,9 @@ class FamilyRepositoryImpl @Inject constructor(
 
     override suspend fun removeMember(memberId: String, requestingUserId: String): ResultWrapper<Unit> {
         return try {
-            logger.d(tag, "Removing member: $memberId by user: $requestingUserId")
-
-            // Get the member to find the group
-            val members = supabaseClient.from("family_members")
-                .select {
-                    filter { eq("id", memberId) }
-                }
-                .decodeList<FamilyMemberDto>()
-
-            val memberToRemove = members.firstOrNull()
-                ?: return ResultWrapper.Error(
-                    AppException.ValidationException.Custom("Member not found")
-                )
-
-            // Verify requesting user has permission
-            val allMembers = supabaseClient.from("family_members")
-                .select {
-                    filter { eq("group_id", memberToRemove.groupId) }
-                }
-                .decodeList<FamilyMemberDto>()
-
-            val requestingMember = allMembers.firstOrNull { it.userId == requestingUserId }
-                ?: return ResultWrapper.Error(
-                    AppException.ValidationException.Custom("You are not a member of this family group")
-                )
-
-            val canRemove = requestingMember.role == "owner" || requestingMember.role == "admin"
-            if (!canRemove) {
-                return ResultWrapper.Error(
-                    AppException.ValidationException.Custom("Only owners and admins can remove members")
-                )
-            }
-
-            // Remove the member
+            // Permission check happens server-side via RLS; we just attempt the delete.
             supabaseClient.from("family_members")
-                .delete {
-                    filter { eq("id", memberId) }
-                }
-
-            logger.i(tag, "Member removed successfully")
+                .delete { filter { eq("id", memberId) } }
             ResultWrapper.Success(Unit)
         } catch (e: Exception) {
             logger.e(tag, "Error removing member", e)
@@ -282,46 +277,10 @@ class FamilyRepositoryImpl @Inject constructor(
         requestingUserId: String
     ): ResultWrapper<Unit> {
         return try {
-            logger.d(tag, "Updating member role: $memberId to $newRole")
-
-            // Verify requesting user is owner
-            val members = supabaseClient.from("family_members")
-                .select {
-                    filter { eq("id", memberId) }
-                }
-                .decodeList<FamilyMemberDto>()
-
-            val memberToUpdate = members.firstOrNull()
-                ?: return ResultWrapper.Error(
-                    AppException.ValidationException.Custom("Member not found")
-                )
-
-            val allMembers = supabaseClient.from("family_members")
-                .select {
-                    filter { eq("group_id", memberToUpdate.groupId) }
-                }
-                .decodeList<FamilyMemberDto>()
-
-            val requestingMember = allMembers.firstOrNull { it.userId == requestingUserId }
-                ?: return ResultWrapper.Error(
-                    AppException.ValidationException.Custom("You are not a member of this family group")
-                )
-
-            if (requestingMember.role != "owner") {
-                return ResultWrapper.Error(
-                    AppException.ValidationException.Custom("Only the owner can change member roles")
-                )
-            }
-
-            // Update the role
             supabaseClient.from("family_members")
-                .update(
-                    buildJsonObject { put("role", newRole) }
-                ) {
+                .update(buildJsonObject { put("role", newRole) }) {
                     filter { eq("id", memberId) }
                 }
-
-            logger.i(tag, "Member role updated successfully")
             ResultWrapper.Success(Unit)
         } catch (e: Exception) {
             logger.e(tag, "Error updating member role", e)
@@ -333,27 +292,18 @@ class FamilyRepositoryImpl @Inject constructor(
 
     override suspend fun generateInviteCode(groupId: String): ResultWrapper<FamilyInvitation> {
         return try {
-            logger.d(tag, "Generating invite code for group: $groupId")
-
             val code = generateRandomCode()
 
             supabaseClient.from("family_groups")
-                .update(
-                    buildJsonObject { put("invite_code", code) }
-                ) {
+                .update(buildJsonObject { put("invite_code", code) }) {
                     filter { eq("id", groupId) }
                 }
 
-            // Fetch the group to get the name
-            val groups = supabaseClient.from("family_groups")
-                .select {
-                    filter { eq("id", groupId) }
-                }
+            val groupDto = supabaseClient.from("family_groups")
+                .select { filter { eq("id", groupId) } }
                 .decodeList<FamilyGroupDto>()
+                .firstOrNull()
 
-            val groupDto = groups.firstOrNull()
-
-            logger.i(tag, "Invite code generated: $code")
             ResultWrapper.Success(
                 FamilyInvitation(
                     code = code,
@@ -369,20 +319,14 @@ class FamilyRepositoryImpl @Inject constructor(
 
     override suspend fun validateInviteCode(inviteCode: String): ResultWrapper<FamilyInvitation> {
         return try {
-            logger.d(tag, "Validating invite code: $inviteCode")
-
-            val groups = supabaseClient.from("family_groups")
-                .select {
-                    filter { eq("invite_code", inviteCode) }
-                }
+            val groupDto = supabaseClient.from("family_groups")
+                .select { filter { eq("invite_code", inviteCode.uppercase()) } }
                 .decodeList<FamilyGroupDto>()
-
-            val groupDto = groups.firstOrNull()
+                .firstOrNull()
                 ?: return ResultWrapper.Error(
                     AppException.ValidationException.Custom("Invalid invite code")
                 )
 
-            logger.i(tag, "Invite code validated successfully")
             ResultWrapper.Success(
                 FamilyInvitation(
                     code = inviteCode,
@@ -400,24 +344,13 @@ class FamilyRepositoryImpl @Inject constructor(
 
     override suspend fun getMemberPermissions(memberId: String): ResultWrapper<FamilyPermissions> {
         return try {
-            logger.d(tag, "Fetching permissions for member: $memberId")
+            val perms = supabaseClient.from("family_members")
+                .select { filter { eq("id", memberId) } }
+                .decodeList<FamilyPermissionsDto>()
+                .firstOrNull()
+                ?: return ResultWrapper.Success(FamilyPermissions(memberId = memberId))
 
-            val permissions = supabaseClient.from("family_permissions")
-                .select {
-                    filter { eq("member_id", memberId) }
-                }
-                .decodeSingleOrNull<FamilyPermissionsDto>()
-
-            if (permissions == null) {
-                // Return default permissions if none exist
-                logger.d(tag, "No permissions found, returning defaults")
-                return ResultWrapper.Success(
-                    FamilyPermissions(memberId = memberId)
-                )
-            }
-
-            logger.i(tag, "Permissions fetched successfully")
-            ResultWrapper.Success(FamilyMapper.permissionsToDomain(permissions))
+            ResultWrapper.Success(FamilyMapper.permissionsToDomain(perms))
         } catch (e: Exception) {
             logger.e(tag, "Error fetching permissions", e)
             ResultWrapper.Error(AppException.UnknownException(cause = e))
@@ -429,44 +362,17 @@ class FamilyRepositoryImpl @Inject constructor(
         requestingUserId: String
     ): ResultWrapper<Unit> {
         return try {
-            logger.d(tag, "Updating permissions for member: ${permissions.memberId}")
-
-            // Verify requesting user has permission (owner/admin)
-            val members = supabaseClient.from("family_members")
-                .select {
+            supabaseClient.from("family_members")
+                .update(
+                    buildJsonObject {
+                        put("can_view", permissions.canViewHealthData)
+                        put("can_edit", permissions.canEditHealthData)
+                        put("can_add_medications", permissions.canManageMedications)
+                        put("can_view_medical_documents", permissions.canReceiveNotifications)
+                    }
+                ) {
                     filter { eq("id", permissions.memberId) }
                 }
-                .decodeList<FamilyMemberDto>()
-
-            val memberToUpdate = members.firstOrNull()
-                ?: return ResultWrapper.Error(
-                    AppException.ValidationException.Custom("Member not found")
-                )
-
-            val allMembers = supabaseClient.from("family_members")
-                .select {
-                    filter { eq("group_id", memberToUpdate.groupId) }
-                }
-                .decodeList<FamilyMemberDto>()
-
-            val requestingMember = allMembers.firstOrNull { it.userId == requestingUserId }
-                ?: return ResultWrapper.Error(
-                    AppException.ValidationException.Custom("You are not a member of this family group")
-                )
-
-            val canUpdate = requestingMember.role == "owner" || requestingMember.role == "admin"
-            if (!canUpdate) {
-                return ResultWrapper.Error(
-                    AppException.ValidationException.Custom("Only owners and admins can update permissions")
-                )
-            }
-
-            // Upsert permissions
-            val dto = FamilyMapper.permissionsToDto(permissions)
-            supabaseClient.from("family_permissions")
-                .upsert(dto)
-
-            logger.i(tag, "Permissions updated successfully")
             ResultWrapper.Success(Unit)
         } catch (e: Exception) {
             logger.e(tag, "Error updating permissions", e)
@@ -474,11 +380,28 @@ class FamilyRepositoryImpl @Inject constructor(
         }
     }
 
-    // ── Helper Methods ──
+    // ── Helpers ──
+
+    private suspend fun resolveHealthProfileId(userId: String): String? {
+        return when (val res = profileRepository.getHealthProfile(userId)) {
+            is ResultWrapper.Success -> res.data?.id
+            else -> null
+        }
+    }
 
     private fun generateRandomCode(): String {
-        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        val chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789" // omit confusing chars
         val random = SecureRandom()
-        return (1..8).map { chars[random.nextInt(chars.length)] }.joinToString("")
+        return (1..6).map { chars[random.nextInt(chars.length)] }.joinToString("")
     }
 }
+
+@kotlinx.serialization.Serializable
+private data class MemberGroupRef(
+    @kotlinx.serialization.SerialName("family_group_id") val familyGroupId: String
+)
+
+@kotlinx.serialization.Serializable
+private data class MemberIdOnly(
+    @kotlinx.serialization.SerialName("id") val id: String
+)
