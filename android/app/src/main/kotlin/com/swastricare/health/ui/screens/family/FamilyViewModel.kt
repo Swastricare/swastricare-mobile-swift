@@ -237,7 +237,9 @@ class FamilyViewModel @Inject constructor(
                     logger.e(tag, "Error joining group: ${result.exception.message}")
                     _uiState.update {
                         it.copy(
-                            error = "Unable to join family.",
+                            error = result.exception.message
+                                ?.takeIf { msg -> msg.isNotBlank() }
+                                ?: "Unable to join family.",
                             isJoining = false
                         )
                     }

@@ -17,7 +17,9 @@ import com.swastricare.health.domain.repository.FamilyRepository
 import com.swastricare.health.domain.repository.ProfileRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.postgrest.rpc
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.security.SecureRandom
@@ -190,61 +192,31 @@ class FamilyRepositoryImpl @Inject constructor(
         return try {
             logger.d(tag, "Joining group with code: $inviteCode")
 
-            val groupDto = supabaseClient.from("family_groups")
-                .select { filter { eq("invite_code", inviteCode.uppercase()) } }
-                .decodeList<FamilyGroupDto>()
-                .firstOrNull()
-                ?: return ResultWrapper.Error(
-                    AppException.ValidationException.Custom("Invalid invite code")
-                )
+            // RLS blocks non-owner SELECT/INSERT on family_groups & family_members,
+            // so the privileged join is done via a SECURITY DEFINER SQL function.
+            val params = buildJsonObject { put("p_invite_code", inviteCode.uppercase()) }
+            val groupId = supabaseClient.postgrest
+                .rpc("join_family_by_invite_code", params)
+                .decodeAs<String>()
 
-            val healthProfileId = resolveHealthProfileId(userId)
-                ?: return ResultWrapper.Error(
-                    AppException.ValidationException.Custom(
-                        "Health profile not found. Please complete onboarding."
-                    )
-                )
-
-            // Already a member?
-            val existing = supabaseClient.from("family_members")
-                .select(Columns.raw("id")) {
-                    filter {
-                        eq("family_group_id", groupDto.id)
-                        eq("health_profile_id", healthProfileId)
-                    }
-                }
-                .decodeList<MemberIdOnly>()
-
-            if (existing.isNotEmpty()) {
+            if (groupId.isBlank()) {
                 return ResultWrapper.Error(
-                    AppException.ValidationException.Custom(
-                        "You are already a member of this family group"
-                    )
+                    AppException.ApiException.ServerError("Failed to join family group")
                 )
             }
 
-            supabaseClient.from("family_members")
-                .insert(
-                    CreateFamilyMemberDto(
-                        id = UUID.randomUUID().toString(),
-                        familyGroupId = groupDto.id,
-                        healthProfileId = healthProfileId,
-                        addedByUserId = userId,
-                        role = "viewer",
-                        status = "active",
-                        canView = true,
-                        canEdit = false,
-                        canAddMedications = false,
-                        canAddAppointments = false,
-                        canViewMedicalDocuments = true,
-                        canManageMembers = false
-                    )
+            val groupDto = supabaseClient.from("family_groups")
+                .select { filter { eq("id", groupId) } }
+                .decodeList<FamilyGroupDto>()
+                .firstOrNull()
+                ?: return ResultWrapper.Error(
+                    AppException.ApiException.ServerError("Joined but failed to load family group")
                 )
 
             ResultWrapper.Success(FamilyMapper.toDomain(groupDto))
         } catch (e: Exception) {
             logger.e(tag, "Error joining group", e)
-            ResultWrapper.Error(AppException.UnknownException(cause = e))
+            ResultWrapper.Error(mapJoinError(e))
         }
     }
 
@@ -319,10 +291,14 @@ class FamilyRepositoryImpl @Inject constructor(
 
     override suspend fun validateInviteCode(inviteCode: String): ResultWrapper<FamilyInvitation> {
         return try {
-            val groupDto = supabaseClient.from("family_groups")
-                .select { filter { eq("invite_code", inviteCode.uppercase()) } }
-                .decodeList<FamilyGroupDto>()
-                .firstOrNull()
+            // RLS hides family_groups from non-owners — go through the
+            // SECURITY DEFINER lookup function instead.
+            val params = buildJsonObject { put("p_invite_code", inviteCode.uppercase()) }
+            val rows = supabaseClient.postgrest
+                .rpc("get_family_by_invite_code", params)
+                .decodeList<InviteLookupDto>()
+
+            val match = rows.firstOrNull()
                 ?: return ResultWrapper.Error(
                     AppException.ValidationException.Custom("Invalid invite code")
                 )
@@ -330,8 +306,8 @@ class FamilyRepositoryImpl @Inject constructor(
             ResultWrapper.Success(
                 FamilyInvitation(
                     code = inviteCode,
-                    groupId = groupDto.id,
-                    groupName = groupDto.name
+                    groupId = match.id,
+                    groupName = match.name
                 )
             )
         } catch (e: Exception) {
@@ -362,13 +338,14 @@ class FamilyRepositoryImpl @Inject constructor(
         requestingUserId: String
     ): ResultWrapper<Unit> {
         return try {
+            // canReceiveNotifications has no direct DB column and previously
+            // overwrote can_view_medical_documents. Drop that mismapping.
             supabaseClient.from("family_members")
                 .update(
                     buildJsonObject {
                         put("can_view", permissions.canViewHealthData)
                         put("can_edit", permissions.canEditHealthData)
                         put("can_add_medications", permissions.canManageMedications)
-                        put("can_view_medical_documents", permissions.canReceiveNotifications)
                     }
                 ) {
                     filter { eq("id", permissions.memberId) }
@@ -394,6 +371,40 @@ class FamilyRepositoryImpl @Inject constructor(
         val random = SecureRandom()
         return (1..6).map { chars[random.nextInt(chars.length)] }.joinToString("")
     }
+
+    // Translates Postgres errors raised by join_family_by_invite_code into
+    // user-facing validation messages. Supabase wraps the RAISE EXCEPTION body
+    // in a JSON envelope like {"code":"P0001","message":"...","details":...}.
+    private fun mapJoinError(e: Exception): AppException {
+        val raw = e.message.orEmpty()
+        val extracted = extractPostgrestMessage(raw)
+        val needle = if (extracted.isNotBlank()) extracted else raw
+
+        return when {
+            needle.contains("Invalid invite code", ignoreCase = true) ->
+                AppException.ValidationException.Custom("Invalid invite code")
+            needle.contains("already a member", ignoreCase = true) ->
+                AppException.ValidationException.Custom(
+                    "You are already a member of this family group"
+                )
+            needle.contains("Health profile not found", ignoreCase = true) ->
+                AppException.ValidationException.Custom(
+                    "Health profile not found. Please complete onboarding."
+                )
+            extracted.isNotBlank() ->
+                AppException.ValidationException.Custom(extracted)
+            else -> AppException.UnknownException(message = raw.take(280), cause = e)
+        }
+    }
+
+    private fun extractPostgrestMessage(raw: String): String {
+        val key = "\"message\""
+        val keyIdx = raw.indexOf(key).takeIf { it >= 0 } ?: return ""
+        val colon = raw.indexOf(':', keyIdx + key.length).takeIf { it >= 0 } ?: return ""
+        val firstQuote = raw.indexOf('"', colon + 1).takeIf { it >= 0 } ?: return ""
+        val closing = raw.indexOf('"', firstQuote + 1).takeIf { it >= 0 } ?: return ""
+        return raw.substring(firstQuote + 1, closing)
+    }
 }
 
 @kotlinx.serialization.Serializable
@@ -402,6 +413,7 @@ private data class MemberGroupRef(
 )
 
 @kotlinx.serialization.Serializable
-private data class MemberIdOnly(
-    @kotlinx.serialization.SerialName("id") val id: String
+private data class InviteLookupDto(
+    @kotlinx.serialization.SerialName("id") val id: String,
+    @kotlinx.serialization.SerialName("name") val name: String? = null
 )

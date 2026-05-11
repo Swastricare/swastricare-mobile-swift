@@ -37,7 +37,12 @@ import coil.compose.AsyncImage
 import com.swastricare.health.domain.model.FamilyMember
 import com.swastricare.health.domain.model.FamilyRole
 import com.swastricare.health.presentation.feature.family.FamilyUiState
+import com.swastricare.health.ui.components.AppBottomSheet
+import com.swastricare.health.ui.components.AppSheetDescription
+import com.swastricare.health.ui.components.AppSheetIconHeader
+import com.swastricare.health.ui.components.AppSheetTitle
 import com.swastricare.health.ui.components.TrackScreen
+import com.swastricare.health.ui.screens.home.shimmer
 import com.swastricare.health.ui.theme.AITeal
 import com.swastricare.health.ui.theme.AppColors
 
@@ -115,12 +120,7 @@ fun FamilyScreen(
 
             when {
                 uiState.isLoading && uiState.familyGroup == null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = AITeal)
-                    }
+                    FamilySkeleton()
                 }
                 uiState.familyGroup != null -> {
                     InGroupContent(
@@ -156,6 +156,10 @@ fun FamilyScreen(
                 inviteCode = uiState.inviteCode,
                 isGenerating = uiState.isGeneratingCode,
                 canLeave = true,
+                onCopyCode = {
+                    clipboardManager.setText(AnnotatedString(uiState.inviteCode))
+                    vm.trackFamilyInviteSent()
+                },
                 onCopyLink = {
                     val link = "swastricare://family/join?code=${uiState.inviteCode}"
                     clipboardManager.setText(AnnotatedString(link))
@@ -471,20 +475,33 @@ private fun FamilyMemberRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Avatar
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(AITeal.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = (if (isCurrent) "ME" else (member.fullName ?: "?").take(2).uppercase()),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                color = AITeal
+        // Avatar — profile image when available, else tinted initials
+        val avatar = member.avatarUrl?.takeIf { it.isNotBlank() }
+        if (avatar != null) {
+            AsyncImage(
+                model = avatar,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(AITeal.copy(alpha = 0.15f))
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(AITeal.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = (if (isCurrent) "ME" else (member.fullName ?: "?").take(2).uppercase()),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = AITeal
+                )
+            }
         }
 
         Column(modifier = Modifier.weight(1f)) {
@@ -705,127 +722,240 @@ private fun InviteBottomSheet(
     inviteCode: String,
     isGenerating: Boolean,
     canLeave: Boolean,
+    onCopyCode: () -> Unit,
     onCopyLink: () -> Unit,
     onGenerateCode: () -> Unit,
     onLeaveGroup: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var copied by remember { mutableStateOf(false) }
+    var codeCopied by remember { mutableStateOf(false) }
+    var linkCopied by remember { mutableStateOf(false) }
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color.Transparent,
-        shape = RoundedCornerShape(0.dp),
-        dragHandle = null,
-        scrimColor = Color.White.copy(alpha = 0.6f)
-    ) {
+    AppBottomSheet(onDismiss = onDismiss) {
+        AppSheetTitle("Invite a member")
+
+        AppSheetDescription(
+            "Share this code with anyone you want to add to your family group."
+        )
+
+        // Invite code display — tap anywhere to copy
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(Color.White)
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(AITeal.copy(alpha = 0.10f))
+                .clickable(enabled = inviteCode.isNotBlank()) {
+                    onCopyCode()
+                    codeCopied = true
+                }
+                .padding(vertical = 20.dp, horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                "Invite a member",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = AppColors.onBackground
+                "INVITE CODE",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SubtitleColor,
+                letterSpacing = 1.5.sp
             )
             Text(
-                "Share this code with anyone you want to add to your family group.",
-                fontSize = 13.sp,
-                color = SubtitleColor
+                inviteCode.ifBlank { "------" },
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 6.sp,
+                color = AITeal
             )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(AITeal.copy(alpha = 0.08f))
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    "Invite Code",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = SubtitleColor,
-                    letterSpacing = 1.sp
+            Spacer(Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    if (codeCopied) Icons.Default.Check else Icons.Outlined.ContentCopy,
+                    contentDescription = null,
+                    tint = AITeal,
+                    modifier = Modifier.size(12.dp)
                 )
+                Spacer(Modifier.width(4.dp))
                 Text(
-                    inviteCode.ifBlank { "------" },
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 6.sp,
+                    if (codeCopied) "Code copied" else "Tap to copy code",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
                     color = AITeal
                 )
             }
+        }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Spacer(Modifier.height(4.dp))
+
+        // Actions row — Generate (secondary) + Copy (primary)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedButton(
+                onClick = onGenerateCode,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, AITeal),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = AITeal),
+                enabled = !isGenerating
             ) {
-                Button(
-                    onClick = {
-                        onCopyLink()
-                        copied = true
-                    },
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AITeal),
-                    enabled = inviteCode.isNotBlank()
-                ) {
+                if (isGenerating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = AITeal,
+                        strokeWidth = 2.dp
+                    )
+                } else {
                     Icon(
-                        if (copied) Icons.Default.Check else Icons.Outlined.ContentCopy,
+                        Icons.Outlined.Refresh,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text(if (copied) "Copied" else "Copy Link", fontSize = 13.sp)
-                }
-                OutlinedButton(
-                    onClick = onGenerateCode,
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, AITeal),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AITeal),
-                    enabled = !isGenerating
-                ) {
-                    if (isGenerating) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = AITeal,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(
-                            Icons.Outlined.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text("New Code", fontSize = 13.sp)
-                    }
+                    Text(
+                        "Generate",
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
 
-            if (canLeave) {
-                Spacer(Modifier.height(4.dp))
-                TextButton(
-                    onClick = onLeaveGroup,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.textButtonColors(contentColor = DangerColor)
-                ) {
-                    Text("Leave Family Group", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                }
+            Button(
+                onClick = {
+                    onCopyLink()
+                    linkCopied = true
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AITeal),
+                enabled = inviteCode.isNotBlank()
+            ) {
+                Icon(
+                    if (linkCopied) Icons.Default.Check else Icons.Outlined.ContentCopy,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    if (linkCopied) "Copied" else "Copy Link",
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
+
+        if (canLeave) {
+            TextButton(
+                onClick = onLeaveGroup,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "Leave Family Group",
+                    color = DangerColor,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+// -----------------------------------------------
+// MARK: - Skeleton Loading
+// -----------------------------------------------
+
+@Composable
+private fun SkeletonBlock(
+    modifier: Modifier = Modifier,
+    cornerRadius: Int = 12
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(cornerRadius.dp))
+            .shimmer()
+    )
+}
+
+@Composable
+private fun FamilySkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 4.dp)
+    ) {
+        // Banner placeholder — matches BetterTogetherBanner footprint
+        SkeletonBlock(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(120.dp),
+            cornerRadius = 20
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        // "Your Family" section header placeholder
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SkeletonBlock(
+                modifier = Modifier.size(width = 110.dp, height = 18.dp),
+                cornerRadius = 6
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // 3 member row placeholders — match FamilyMemberRow layout
+        repeat(3) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .border(1.dp, CardBorder, RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(CardBg)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Avatar circle
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .shimmer()
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    SkeletonBlock(
+                        modifier = Modifier.size(width = 140.dp, height = 14.dp),
+                        cornerRadius = 4
+                    )
+                    SkeletonBlock(
+                        modifier = Modifier.size(width = 80.dp, height = 11.dp),
+                        cornerRadius = 4
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // Add member button placeholder
+        SkeletonBlock(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(56.dp),
+            cornerRadius = 16
+        )
     }
 }
