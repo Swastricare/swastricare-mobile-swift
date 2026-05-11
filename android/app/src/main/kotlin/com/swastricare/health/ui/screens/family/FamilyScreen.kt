@@ -95,14 +95,13 @@ fun FamilyScreen(
 
     Box(modifier = Modifier.fillMaxSize().background(PageBg)) {
 
-        // Background leaf illustration (bottom-end)
+        // Background leaf illustration (bottom-end). Wider but kept anchored low.
         AsyncImage(
             model = LEAF_ASSET,
             contentDescription = null,
-            contentScale = ContentScale.Fit,
+            contentScale = ContentScale.FillWidth,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .fillMaxHeight(0.55f)
                 .fillMaxWidth(1.0f)
                 .alpha(0.95f)
         )
