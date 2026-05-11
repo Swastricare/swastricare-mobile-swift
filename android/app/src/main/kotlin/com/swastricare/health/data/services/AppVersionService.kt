@@ -104,16 +104,19 @@ class AppVersionService @Inject constructor(
     }
 
     /**
-     * Check for available updates. Uses cached result if within TTL.
+     * Check for available updates. When [forceRefresh] is true, bypasses cache.
      */
     suspend fun checkForUpdate(
         currentVersionName: String,
-        currentBuildCode: Int
+        currentBuildCode: Int,
+        forceRefresh: Boolean = false
     ): AppUpdateCheckResult {
-        val cached = getCachedResult(currentVersionName, currentBuildCode)
-        if (cached != null) {
-            Log.d(TAG, "Using cached update check result: ${cached.status}")
-            return cached
+        if (!forceRefresh) {
+            val cached = getCachedResult(currentVersionName, currentBuildCode)
+            if (cached != null) {
+                Log.d(TAG, "Using cached update check result: ${cached.status}")
+                return cached
+            }
         }
 
         return try {

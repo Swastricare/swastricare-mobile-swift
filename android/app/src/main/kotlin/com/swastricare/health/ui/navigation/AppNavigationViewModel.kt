@@ -25,7 +25,8 @@ class AppNavigationViewModel @Inject constructor(
 
     suspend fun checkForUpdate(): AppUpdateCheckResult? {
         return try {
-            appVersionService.checkForUpdate(currentVersionName, currentVersionCode)
+            // Always hit the server — check every time the app launches/resumes
+            appVersionService.checkForUpdate(currentVersionName, currentVersionCode, forceRefresh = true)
         } catch (_: Exception) {
             null
         }

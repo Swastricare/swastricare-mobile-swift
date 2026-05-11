@@ -1,40 +1,66 @@
 package com.swastricare.health.ui.screens.update
 
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.SystemUpdate
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
 import com.swastricare.health.ui.components.TrackScreen
-import com.swastricare.health.ui.screens.auth.components.PremiumColors
-import com.swastricare.health.ui.theme.PrimaryColor
+import com.swastricare.health.ui.theme.AITeal
+import com.swastricare.health.ui.theme.PoppinsFontFamily
 
 /**
  * ForceUpdateScreen
- * Blocking full-screen overlay requiring the user to update the app.
- * No back/dismiss option. Matches iOS ForceUpdateView.
  *
- * Uses server-provided updateTitle/updateMessage when available,
- * falls back to defaults.
+ * Full-screen blocking update prompt. Pure white background with:
+ *  • Hero illustration (assets/images/update required screen.png) at top
+ *  • Title + subtitle (server-overridable)
+ *  • Three benefit rows (Better Performance / New Features / Enhanced Security)
+ *  • Solid AITeal "Update Now" CTA
+ *  • Optional "Not Now" link (only when [onNotNow] is provided)
+ *  • Bottom leafy illustration sits behind the CTA as a decorative band
  */
 @Composable
 fun ForceUpdateScreen(
@@ -42,139 +68,125 @@ fun ForceUpdateScreen(
     latestVersion: String,
     updateTitle: String? = null,
     updateMessage: String? = null,
-    storeUrl: String? = null
+    storeUrl: String? = null,
+    onNotNow: (() -> Unit)? = null
 ) {
     TrackScreen("ForceUpdate")
     val context = LocalContext.current
 
-    // Block back button
-    BackHandler(enabled = true) {
-        // Do nothing - this screen is blocking
+    BackHandler(enabled = onNotNow == null) {
+        // Block back navigation on hard force update
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "forceUpdateAnim")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
+    val heroBitmap: ImageBitmap? = remember {
+        runCatching {
+            context.assets.open("images/update required screen.png").use {
+                BitmapFactory.decodeStream(it)
+            }.asImageBitmap()
+        }.getOrNull()
+    }
+
+    val bottomBitmap: ImageBitmap? = remember {
+        runCatching {
+            context.assets.open("images/update required bottom illustration.png").use {
+                BitmapFactory.decodeStream(it)
+            }.asImageBitmap()
+        }.getOrNull()
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFFF8FAFC),
-                        Color(0xFFEFF4F9),
-                        Color(0xFFE2E9F3)
-                    )
-                )
-            )
+            .background(Color.White)
     ) {
-        // Decorative circles
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 100.dp, y = (-100).dp)
-                .size(400.dp)
-                .background(PremiumColors.Cyan.copy(alpha = 0.05f), CircleShape)
-                .blur(80.dp)
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .offset(x = (-100).dp, y = 100.dp)
-                .size(400.dp)
-                .background(PremiumColors.RoyalBlue.copy(alpha = 0.05f), CircleShape)
-                .blur(80.dp)
-        )
+        // Decorative bottom illustration — sits behind the CTA
+        if (bottomBitmap != null) {
+            Image(
+                bitmap = bottomBitmap,
+                contentDescription = null,
+                contentScale = ContentScale.FillWidth,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+            )
+        }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // App Logo
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .scale(pulseScale)
-                    .background(
-                        Brush.linearGradient(
-                            listOf(PremiumColors.RoyalBlue, PremiumColors.Cyan)
-                        ),
-                        RoundedCornerShape(28.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Hero illustration
+            if (heroBitmap != null) {
+                Image(
+                    bitmap = heroBitmap,
                     contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(48.dp)
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp)
                 )
+            } else {
+                Spacer(modifier = Modifier.height(260.dp))
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Update icon
-            Icon(
-                imageVector = Icons.Default.SystemUpdate,
-                contentDescription = null,
-                tint = PrimaryColor,
-                modifier = Modifier.size(48.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Title (server-provided or default)
             Text(
                 text = updateTitle ?: "Update Required",
-                fontSize = 28.sp,
+                fontFamily = PoppinsFontFamily,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
-                color = PremiumColors.TextDark,
+                color = Color(0xFF0F172A),
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Version info
-            Text(
-                text = "Current: v$currentVersion",
-                style = MaterialTheme.typography.bodyMedium,
-                color = PremiumColors.TextGrey
-            )
-            if (latestVersion.isNotBlank()) {
-                Text(
-                    text = "Latest: v$latestVersion",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = PrimaryColor
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Description (server-provided or default)
             Text(
                 text = updateMessage
-                    ?: "A critical update is required to continue using SwastriCare. Please update to the latest version for the best experience.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = PremiumColors.TextGrey,
+                    ?: "A new version of the app is available. Update now to continue using all features and improvements.",
+                fontFamily = PoppinsFontFamily,
+                fontSize = 14.sp,
+                lineHeight = 20.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color(0xFF64748B),
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // Benefits
+            BenefitRow(
+                icon = Icons.Outlined.Shield,
+                title = "Better Performance",
+                subtitle = "Faster and more reliable experience"
+            )
+            Spacer(modifier = Modifier.height(18.dp))
+            BenefitRow(
+                icon = Icons.Outlined.Star,
+                title = "New Features",
+                subtitle = "Exciting features and improvements"
+            )
+            Spacer(modifier = Modifier.height(18.dp))
+            BenefitRow(
+                icon = Icons.Outlined.Lock,
+                title = "Enhanced Security",
+                subtitle = "Stronger protection for your data"
             )
 
             Spacer(modifier = Modifier.height(40.dp))
 
-            // Update button
+            // CTA
             Button(
                 onClick = {
                     val url = storeUrl ?: "market://details?id=com.swastricare.health"
@@ -191,19 +203,80 @@ fun ForceUpdateScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryColor
-                )
+                    .height(54.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = AITeal),
+                contentPadding = PaddingValues(0.dp)
             ) {
                 Text(
                     text = "Update Now",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontFamily = PoppinsFontFamily,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
                     color = Color.White
                 )
             }
+
+            if (onNotNow != null) {
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    text = "Not Now",
+                    fontFamily = PoppinsFontFamily,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF64748B),
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .clickable { onNotNow() }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun BenefitRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .background(AITeal.copy(alpha = 0.12f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = AITeal,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(14.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontFamily = PoppinsFontFamily,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF0F172A)
+            )
+            Text(
+                text = subtitle,
+                fontFamily = PoppinsFontFamily,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color(0xFF64748B)
+            )
         }
     }
 }

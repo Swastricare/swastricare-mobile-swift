@@ -51,6 +51,7 @@ struct swastricare_mobile_swiftApp: App {
     
     // App version state
     @State private var hasCheckedAppVersion: Bool = false
+    @State private var showingOptionalUpdate: Bool = false
     
     // Notification permission state
     @State private var hasRequestedNotificationPermission: Bool = false
@@ -180,6 +181,17 @@ struct swastricare_mobile_swiftApp: App {
             .animation(.easeInOut, value: hasCompletedReferralStep)
             .animation(.easeInOut, value: hasCompletedHealthProfile)
             .animation(.easeInOut, value: hasCheckedAppVersion)
+            .optionalUpdateAlert(
+                appVersionService: appVersionService,
+                isPresented: $showingOptionalUpdate
+            )
+            .onChange(of: appVersionService.updateStatus) { _, newStatus in
+                if case .updateAvailable = newStatus {
+                    showingOptionalUpdate = true
+                } else {
+                    showingOptionalUpdate = false
+                }
+            }
             .withDependencies()
             .preferredColorScheme(.light) // Android parity: force light theme (mirrors Android `darkTheme = false`)
             .environmentObject(themeManager)
@@ -374,9 +386,9 @@ struct swastricare_mobile_swiftApp: App {
             Task { await AppAnalyticsService.shared.flushNow() }
 
         case .active:
-            // Re-check app version periodically when becoming active
+            // Re-check app version every time the app becomes active (bypass 1h cache)
             Task {
-                let status = await appVersionService.checkForUpdates(force: false)
+                let status = await appVersionService.checkForUpdates(force: true)
                 if status.requiresAction {
                     // Force update now required
                     await MainActor.run {
