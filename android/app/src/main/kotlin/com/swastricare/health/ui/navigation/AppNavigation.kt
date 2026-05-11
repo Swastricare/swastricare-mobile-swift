@@ -69,9 +69,8 @@ import com.swastricare.health.ui.screens.menstrualcycle.MenstrualCycleViewModel
 import com.swastricare.health.ui.screens.notifications.NotificationHistoryScreen
 import com.swastricare.health.ui.screens.notifications.NotificationSettingsScreen
 import com.swastricare.health.ui.screens.onboarding.ConsentScreen
-import com.swastricare.health.ui.screens.onboarding.HealthProfileScreen
-import com.swastricare.health.ui.screens.onboarding.HealthProfileViewModel
 import com.swastricare.health.ui.screens.onboarding.OnboardingScreen
+import com.swastricare.health.ui.screens.onboarding.OneQuestionOnboardingScreen
 import com.swastricare.health.ui.screens.profile.EditProfileScreen
 import com.swastricare.health.ui.screens.profile.ProfileViewModel
 import com.swastricare.health.ui.screens.runactivity.ActivityDetailScreen
@@ -88,6 +87,7 @@ import com.swastricare.health.ui.screens.settings.SettingsViewModel
 import com.swastricare.health.ui.screens.settings.ThemeSettingsScreen
 import com.swastricare.health.ui.screens.sleep.LogSleepScreen
 import com.swastricare.health.ui.screens.sleep.SleepScreen
+import com.swastricare.health.ui.screens.splash.AuthGateScreen
 import com.swastricare.health.ui.screens.splash.SplashScreen
 import com.swastricare.health.ui.screens.stress.StressAnalyticsScreen
 import com.swastricare.health.ui.screens.stress.StressScreen
@@ -233,6 +233,37 @@ fun AppNavigation(
                     navController.navigate("onboarding") {
                         popUpTo("splash") { inclusive = true }
                     }
+                },
+                onNavigateToHealthProfile = {
+                    navController.navigate("health_profile") {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // Silent gate used post-login/signup so the Lottie splash isn't shown again.
+        composable("auth_gate") {
+            AuthGateScreen(
+                onNavigateToHome = {
+                    navController.navigate("main") {
+                        popUpTo("auth_gate") { inclusive = true }
+                    }
+                },
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo("auth_gate") { inclusive = true }
+                    }
+                },
+                onNavigateToOnboarding = {
+                    navController.navigate("onboarding") {
+                        popUpTo("auth_gate") { inclusive = true }
+                    }
+                },
+                onNavigateToHealthProfile = {
+                    navController.navigate("health_profile") {
+                        popUpTo("auth_gate") { inclusive = true }
+                    }
                 }
             )
         }
@@ -274,7 +305,7 @@ fun AppNavigation(
                 viewModel = authViewModel,
                 onNavigateToSignUp = { navController.navigate("signup") },
                 onNavigateToHome = {
-                    navController.navigate("main") {
+                    navController.navigate("auth_gate") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
@@ -289,7 +320,7 @@ fun AppNavigation(
                 viewModel = authViewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToHome = {
-                    navController.navigate("main") {
+                    navController.navigate("auth_gate") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
@@ -305,7 +336,7 @@ fun AppNavigation(
             EmailVerificationScreen(
                 viewModel = authViewModel,
                 onNavigateToHome = {
-                    navController.navigate("main") {
+                    navController.navigate("auth_gate") {
                         popUpTo("login") { inclusive = true }
                     }
                 },
@@ -328,7 +359,7 @@ fun AppNavigation(
             NewPasswordScreen(
                 viewModel = authViewModel,
                 onNavigateToHome = {
-                    navController.navigate("main") {
+                    navController.navigate("auth_gate") {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -336,14 +367,8 @@ fun AppNavigation(
         }
 
         composable("health_profile") {
-            val healthProfileVm: HealthProfileViewModel = hiltViewModel()
-            val userId = authState.let {
-                (it as? AuthUiState.Success)?.user?.id ?: ""
-            }
-            HealthProfileScreen(
-                userId = userId,
-                profileRepository = healthProfileVm.profileRepository,
-                onCompleted = {
+            OneQuestionOnboardingScreen(
+                onFinished = {
                     navController.navigate("main") {
                         popUpTo("health_profile") { inclusive = true }
                     }

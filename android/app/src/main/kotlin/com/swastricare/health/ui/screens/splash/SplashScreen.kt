@@ -31,7 +31,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 fun SplashScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToLogin: () -> Unit,
-    onNavigateToOnboarding: () -> Unit
+    onNavigateToOnboarding: () -> Unit,
+    onNavigateToHealthProfile: () -> Unit
 ) {
     val splashVm: SplashViewModel = hiltViewModel()
     val isDark = isSystemInDarkTheme()
@@ -52,13 +53,13 @@ fun SplashScreen(
     val composition by rememberLottieComposition(
         LottieCompositionSpec.Asset("animations/swasrticare-logo.json")
     )
-    // Source animation is ~4.95s @ 60fps. Speed it up so it plays through in
-    // exactly 2 seconds: speed = 4.95 / 2.0 ≈ 2.475.
+    // Play at natural speed (~4.95s @ 60fps) to match iOS, which uses
+    // animationSpeed(1.0) with a 5-second minimum splash duration.
     val progress by animateLottieCompositionAsState(
         composition = composition,
         iterations = 1,
         isPlaying = true,
-        speed = 2.475f,
+        speed = 1.0f,
         restartOnPlay = false
     )
 
@@ -68,12 +69,13 @@ fun SplashScreen(
     LaunchedEffect(Unit) {
         coroutineScope {
             val preloadJob = async {
-                withTimeoutOrNull(2_500) { splashVm.preloadHomeData() }
+                withTimeoutOrNull(5_000) { splashVm.preloadHomeData() }
             }
             val animationJob = async {
                 // Watch progress through the Snapshot system; cap to a safe
                 // upper bound in case the composition fails to load.
-                withTimeoutOrNull(3_000) {
+                // Lottie is ~4.95s at 1.0x speed, so allow up to ~5.5s.
+                withTimeoutOrNull(5_500) {
                     snapshotFlow { progress }.first { it >= 0.99f }
                 }
             }
@@ -83,14 +85,16 @@ fun SplashScreen(
 
         val isAuthed = splashVm.isAuthenticated()
         val onboardingDone = splashVm.isOnboardingComplete()
+        val healthProfileDone = if (isAuthed) splashVm.isHealthProfileComplete() else true
 
         fadeOut = true
         delay(250)
 
         when {
-            isAuthed -> onNavigateToHome()
-            onboardingDone -> onNavigateToLogin()
-            else -> onNavigateToOnboarding()
+            !isAuthed && !onboardingDone -> onNavigateToOnboarding()
+            !isAuthed -> onNavigateToLogin()
+            !healthProfileDone -> onNavigateToHealthProfile()
+            else -> onNavigateToHome()
         }
     }
 

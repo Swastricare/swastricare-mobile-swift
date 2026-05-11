@@ -24,6 +24,7 @@ private val Context.appDataStore: DataStore<Preferences> by preferencesDataStore
 // Preference keys used by SplashScreen and AppNavigation
 val ONBOARDING_COMPLETE_KEY = booleanPreferencesKey("onboarding_complete")
 val CONSENT_ACCEPTED_KEY = booleanPreferencesKey("consent_accepted")
+val HEALTH_PROFILE_COMPLETE_KEY = booleanPreferencesKey("health_profile_complete")
 
 /**
  * Qualifier for encrypted SharedPreferences.

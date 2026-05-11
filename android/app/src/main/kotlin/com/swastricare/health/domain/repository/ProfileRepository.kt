@@ -57,6 +57,18 @@ interface ProfileRepository {
         fileName: String
     ): ResultWrapper<String>
 
+    // ── Onboarding ──
+
+    /**
+     * Mark onboarding as complete in the users table.
+     * Also syncs [fullName] if non-blank.
+     * Failures are non-fatal — callers should proceed even on Error.
+     */
+    suspend fun markUserOnboardingComplete(
+        userId: String,
+        fullName: String?
+    ): ResultWrapper<Unit>
+
     // ── Settings ──
 
     /**

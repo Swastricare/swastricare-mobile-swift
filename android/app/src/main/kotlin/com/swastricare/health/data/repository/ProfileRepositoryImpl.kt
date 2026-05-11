@@ -88,6 +88,33 @@ class ProfileRepositoryImpl @Inject constructor(
         }
     }
 
+    // ── Onboarding ──
+
+    override suspend fun markUserOnboardingComplete(
+        userId: String,
+        fullName: String?
+    ): ResultWrapper<Unit> = withContext(Dispatchers.IO) {
+        try {
+            logger.d(TAG, "Marking onboarding complete for user: $userId")
+
+            val updatePayload = buildJsonObject {
+                put("onboarding_completed", true)
+                if (!fullName.isNullOrBlank()) put("full_name", fullName)
+            }
+
+            supabaseClient.from("users")
+                .update(updatePayload) {
+                    filter { eq("id", userId) }
+                }
+
+            logger.d(TAG, "Onboarding marked complete successfully")
+            ResultWrapper.Success(Unit)
+        } catch (e: Exception) {
+            logger.e(TAG, "Failed to mark onboarding complete", e)
+            ResultWrapper.Error(AppException.UnknownException(cause = e))
+        }
+    }
+
     // ── Health Profile ──
 
     override suspend fun getHealthProfile(userId: String): ResultWrapper<HealthProfile?> =
