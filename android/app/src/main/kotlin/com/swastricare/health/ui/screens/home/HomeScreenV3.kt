@@ -54,8 +54,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.health.connect.client.PermissionController
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swastricare.health.data.models.AdherenceStatus
+import com.swastricare.health.data.services.HealthConnectService
 import com.swastricare.health.ui.components.TrackScreen
 import com.swastricare.health.ui.screens.medications.MedicationsViewModel
 import com.swastricare.health.ui.screens.auth.components.PremiumColors
@@ -110,6 +113,32 @@ fun HomeScreenV3(
 
     LaunchedEffect(Unit) { medicationsViewModel.loadMedications() }
     LaunchedEffect(Unit) { viewModel.refreshActivityGoals() }
+
+    // Health Connect permission launcher — opens the system HC dialog directly.
+    val healthPermissionLauncher = rememberLauncherForActivityResult(
+        contract = PermissionController.createRequestPermissionResultContract()
+    ) { grantedPermissions ->
+        viewModel.onHealthPermissionsResult(grantedPermissions)
+    }
+
+    // Auto-prompt Health Connect once per process when permissions are missing.
+    var hasAutoPromptedHealth by remember { mutableStateOf(false) }
+    LaunchedEffect(uiState.needsHealthPermissions, uiState.healthConnectAvailable) {
+        if (
+            !hasAutoPromptedHealth &&
+            uiState.needsHealthPermissions &&
+            uiState.healthConnectAvailable
+        ) {
+            hasAutoPromptedHealth = true
+            delay(400)
+            try {
+                healthPermissionLauncher.launch(HealthConnectService.ALL_PERMISSIONS)
+                viewModel.markHealthPermissionsPrompted()
+            } catch (e: Exception) {
+                android.util.Log.w("HomeScreenV3", "HC permission launch failed: ${e.message}")
+            }
+        }
+    }
 
     var isRefreshing by remember { mutableStateOf(false) }
 
