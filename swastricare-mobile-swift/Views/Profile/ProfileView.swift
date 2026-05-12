@@ -88,13 +88,18 @@ struct ProfileView: View {
                 showFamilyFromDeepLink = true
             }
         }
-        .alert("Sign Out", isPresented: $viewModel.showSignOutConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Sign Out", role: .destructive) {
-                Task { await viewModel.signOut() }
-            }
-        } message: {
-            Text("Are you sure you want to sign out?")
+        .sheet(isPresented: $viewModel.showSignOutConfirmation) {
+            SignOutConfirmationSheet(
+                onCancel: { viewModel.showSignOutConfirmation = false },
+                onConfirm: {
+                    viewModel.showSignOutConfirmation = false
+                    Task { await viewModel.signOut() }
+                }
+            )
+            .presentationDetents([.height(260)])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(28)
+            .presentationBackground(.white)
         }
         .alert("Family", isPresented: $showFamilyComingSoon) {
             Button("OK", role: .cancel) {}
@@ -334,10 +339,6 @@ struct ProfileView: View {
 
     private var footerLinks: some View {
         VStack(spacing: 8) {
-            Text("Version \(viewModel.appVersion)")
-                .font(.poppins(.regular, size: 12))
-                .foregroundColor(.primary.opacity(0.5))
-
             HStack(spacing: 12) {
                 Button(action: { activeSheet = .terms }) {
                     Text("Terms of Service")
@@ -604,6 +605,62 @@ struct HealthProfileRow: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.trailing)
         }
+    }
+}
+
+// MARK: - Sign Out Confirmation Sheet
+
+struct SignOutConfirmationSheet: View {
+    let onCancel: () -> Void
+    let onConfirm: () -> Void
+
+    private let danger = Color(hex: "EF4444")
+    private let ink = Color(hex: "0F2027")
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer().frame(height: 8)
+
+            Text("Sign out")
+                .font(.poppins(.bold, size: 22))
+                .foregroundColor(ink)
+                .multilineTextAlignment(.center)
+
+            Text("Are you sure you want to sign out of your account?")
+                .font(.poppins(.regular, size: 14))
+                .foregroundColor(ink.opacity(0.7))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+
+            Spacer().frame(height: 4)
+
+            HStack(spacing: 12) {
+                Button(action: onCancel) {
+                    Text("Cancel")
+                        .font(.poppins(.semiBold, size: 15))
+                        .foregroundColor(ink)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(ink.opacity(0.15), lineWidth: 1.5)
+                        )
+                }
+
+                Button(action: onConfirm) {
+                    Text("Sign out")
+                        .font(.poppins(.semiBold, size: 15))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(danger)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 24)
+        .padding(.top, 16)
     }
 }
 

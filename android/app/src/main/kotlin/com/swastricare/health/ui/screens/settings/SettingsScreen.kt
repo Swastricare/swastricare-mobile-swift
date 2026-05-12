@@ -57,8 +57,13 @@ import com.swastricare.health.ui.theme.AppColors
 import com.swastricare.health.ui.theme.PremiumColor
 import com.swastricare.health.ui.theme.SecondaryColor
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import com.swastricare.health.ui.components.AppBottomSheet
+import com.swastricare.health.ui.components.AppSheetDescription
+import com.swastricare.health.ui.components.AppSheetIconHeader
+import com.swastricare.health.ui.components.AppSheetTitle
 import com.swastricare.health.ui.components.TrackScreen
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -237,7 +242,7 @@ fun SettingsScreen(
                 }
 
                 // ── Footer ──
-                item { SettingsFooterLinks(version = viewModel.appVersion) }
+                item { SettingsFooterLinks() }
             }
         }
 
@@ -346,7 +351,7 @@ private fun SettingsLoadingState(modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsFooterLinks(version: String) {
+private fun SettingsFooterLinks() {
     var showTermsSheet by remember { mutableStateOf(false) }
     var showPrivacySheet by remember { mutableStateOf(false) }
 
@@ -357,12 +362,6 @@ private fun SettingsFooterLinks(version: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(
-            text = "Version $version",
-            style = MaterialTheme.typography.bodySmall,
-            color = AppColors.onBackground.copy(alpha = 0.5f)
-        )
-
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -630,6 +629,8 @@ For privacy concerns, contact: privacy@swastricare.com"""
 
 // MARK: - Dialog Composables
 
+private val DangerColor = Color(0xFFEF4444)
+
 @Composable
 private fun SettingsSignOutDialog(
     show: Boolean,
@@ -637,29 +638,41 @@ private fun SettingsSignOutDialog(
     onConfirm: () -> Unit
 ) {
     if (!show) return
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Sign Out") },
-        text = { Text("Are you sure you want to sign out?") },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = AppColors.error
-                )
+    AppBottomSheet(onDismiss = onDismiss) {
+        AppSheetTitle("Sign out")
+
+        AppSheetDescription("Are you sure you want to sign out of your account?")
+
+        Spacer(Modifier.height(4.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.5.dp, AppColors.onSurface.copy(alpha = 0.15f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = AppColors.onSurface)
             ) {
-                Text("Sign Out")
+                Text("Cancel", fontWeight = FontWeight.SemiBold)
             }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
+
+            Button(
+                onClick = onConfirm,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = DangerColor)
+            ) {
+                Text("Sign out", color = Color.White, fontWeight = FontWeight.SemiBold)
             }
-        },
-        containerColor = AppColors.surface,
-        titleContentColor = AppColors.onSurface,
-        textContentColor = AppColors.onSurfaceVariant
-    )
+        }
+    }
 }
 
 @Composable
