@@ -177,9 +177,10 @@ class SettingsViewModel @Inject constructor(
                 }
                 _signOutEvent.value = true
             } catch (e: Exception) {
+                android.util.Log.e("SettingsViewModel", "deleteAccount failed", e)
                 _uiState.update {
                     it.copy(
-                        errorMessage = "Account deletion not fully implemented on backend yet.",
+                        errorMessage = UserFriendlyError.from(e),
                         isLoading = false,
                         showDeleteAccountConfirmation = false
                     )

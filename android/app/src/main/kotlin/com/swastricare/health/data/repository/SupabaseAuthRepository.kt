@@ -11,6 +11,7 @@ import io.github.jan.supabase.gotrue.providers.builtin.IDToken
 import io.github.jan.supabase.gotrue.user.UserInfo
 import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.from
+import io.ktor.client.call.body
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonPrimitive
@@ -177,13 +178,20 @@ class SupabaseAuthRepository @Inject constructor(
      */
     override suspend fun deleteAccount() {
         val userId = supabaseClient.auth.currentUserOrNull()?.id
+        android.util.Log.d("SupabaseAuthRepo", "deleteAccount: invoking edge function for user=$userId")
 
         // Call the edge function that performs the actual deletion
-        val response = supabaseClient.functions.invoke("delete-account")
-        val status = response.headers["status"]?.toIntOrNull()
-            ?: response.status.value
+        val response = try {
+            supabaseClient.functions.invoke("delete-account")
+        } catch (e: Exception) {
+            android.util.Log.e("SupabaseAuthRepo", "functions.invoke threw: ${e.javaClass.simpleName}: ${e.message}", e)
+            throw e
+        }
+        val status = response.status.value
+        val bodyText = try { response.body<String>() } catch (_: Exception) { "<no body>" }
+        android.util.Log.d("SupabaseAuthRepo", "delete-account response: status=$status body=$bodyText")
         if (status !in 200..299) {
-            throw Exception("Account deletion failed (status $status)")
+            throw Exception("Account deletion failed (status $status): $bodyText")
         }
 
         // Server-side deletion succeeded — clean up locally

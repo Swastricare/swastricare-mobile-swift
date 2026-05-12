@@ -362,3 +362,9 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # Set via Supabase Dashboard → Edge Functions → cycle-ai-nudges → Schedule
 # (requires CLI v2.75+ to configure via config.toml)
 [functions.cycle-ai-nudges]
+
+# delete-account must skip gateway JWT verification because the project uses
+# ES256 (asymmetric) JWTs which the gateway verifier doesn't accept. The
+# function does its own auth check via userClient.auth.getUser().
+[functions.delete-account]
+verify_jwt = false
