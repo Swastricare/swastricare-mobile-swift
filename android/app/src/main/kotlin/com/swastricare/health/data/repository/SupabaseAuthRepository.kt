@@ -1,7 +1,11 @@
 package com.swastricare.health.data.repository
 
 import android.content.SharedPreferences
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import com.swastricare.health.data.model.AppUser
+import com.swastricare.health.di.HEALTH_PROFILE_COMPLETE_KEY
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.OtpType
 import io.github.jan.supabase.gotrue.auth
@@ -30,7 +34,8 @@ import javax.inject.Singleton
 class SupabaseAuthRepository @Inject constructor(
     private val supabaseClient: SupabaseClient,
     private val sharedPreferences: SharedPreferences,
-    private val cacheService: com.swastricare.health.data.services.CacheService
+    private val cacheService: com.swastricare.health.data.services.CacheService,
+    private val dataStore: DataStore<Preferences>
 ) : AuthRepository {
     
     override val currentUser: AppUser?
@@ -206,8 +211,11 @@ class SupabaseAuthRepository @Inject constructor(
      * Clear all locally cached data on sign out / account deletion.
      * Removes health data, widget data, workout state, and notification prefs.
      */
-    private fun clearLocalData() {
+    private suspend fun clearLocalData() {
         sharedPreferences?.edit()?.clear()?.apply()
+        // Clear the per-user health-profile-complete flag so the next user on
+        // this device isn't falsely treated as already onboarded.
+        dataStore.edit { it.remove(HEALTH_PROFILE_COMPLETE_KEY) }
     }
     
     /**

@@ -30,9 +30,13 @@ class SplashViewModel @Inject constructor(
     fun isAuthenticated(): Boolean = authRepository.currentUser != null
 
     suspend fun isHealthProfileComplete(): Boolean {
-        val userId = authRepository.currentUser?.id ?: return false
+        // Check the persisted flag FIRST, before any auth check.
+        // On warm resume from recents, Supabase can still be in LoadingFromStorage
+        // and currentUser is transiently null — we'd otherwise bounce a user with a
+        // completed profile back into onboarding.
         val prefs = dataStore.data.first()
         if (prefs[HEALTH_PROFILE_COMPLETE_KEY] == true) return true
+        val userId = authRepository.currentUser?.id ?: return false
         val result = profileRepository.getHealthProfile(userId)
         if (result is ResultWrapper.Success && result.data != null) {
             markHealthProfileComplete()
