@@ -3,12 +3,35 @@ package com.swastricare.health.data.repository
 import android.util.Log
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.functions.functions
+import io.github.jan.supabase.postgrest.from
 import io.ktor.client.call.body
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/**
+ * Detail payload for a single received nudge (the recipient's view).
+ * Maps to the `ai_nudges` row created by `send-family-nudge`.
+ */
+@Serializable
+data class NudgeDetail(
+    val id: String,
+    val title: String,
+    val message: String,
+    @SerialName("nudge_type") val nudgeType: String,
+    val priority: String? = null,
+    @SerialName("preset_key") val presetKey: String? = null,
+    @SerialName("is_critical") val isCritical: Boolean = false,
+    @SerialName("is_dismissed") val isDismissed: Boolean = false,
+    @SerialName("is_acted_on") val isActedOn: Boolean = false,
+    @SerialName("sender_user_id") val senderUserId: String? = null,
+    @SerialName("action_deeplink") val actionDeeplink: String? = null,
+    @SerialName("created_at") val createdAt: String,
+)
 
 /**
  * Built-in nudge presets supported by the `send-family-nudge` edge function.
@@ -112,6 +135,34 @@ class FamilyNudgeRepository @Inject constructor(
     }.onFailure { e ->
         Log.e(TAG, "sendCustom failed", e)
     }
+
+    /**
+     * Fetch a single nudge by id from `ai_nudges`. RLS already restricts to nudges
+     * the caller can read (owner via [user_id] or recipient via the
+     * `ai_nudges_recipient_select` policy added in 20260512000005).
+     */
+    suspend fun fetchById(id: String): Result<NudgeDetail?> = runCatching {
+        supabaseClient.from("ai_nudges")
+            .select(io.github.jan.supabase.postgrest.query.Columns.raw(
+                "id, title, message, nudge_type, priority, preset_key, is_critical, is_dismissed, is_acted_on, sender_user_id, action_deeplink, created_at"
+            )) { filter { eq("id", id) }; limit(1) }
+            .decodeList<NudgeDetail>()
+            .firstOrNull()
+    }.onFailure { Log.e(TAG, "fetchById($id) failed", it) }
+
+    suspend fun markActedOn(id: String): Result<Unit> = runCatching {
+        supabaseClient.from("ai_nudges").update(buildJsonObject {
+            put("is_acted_on", true)
+        }) { filter { eq("id", id) } }
+        Unit
+    }.onFailure { Log.e(TAG, "markActedOn($id) failed", it) }
+
+    suspend fun dismiss(id: String): Result<Unit> = runCatching {
+        supabaseClient.from("ai_nudges").update(buildJsonObject {
+            put("is_dismissed", true)
+        }) { filter { eq("id", id) } }
+        Unit
+    }.onFailure { Log.e(TAG, "dismiss($id) failed", it) }
 
     private suspend fun invoke(req: NudgeRequest): NudgeResponse {
         val response = supabaseClient.functions.invoke(
