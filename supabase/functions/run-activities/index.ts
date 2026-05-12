@@ -91,22 +91,28 @@ serve(async (req) => {
       })
     }
 
-    // Get user's health profile
-    const { data: profile, error: profileError } = await supabase
+    // Get user's health profile. We don't filter by is_primary because
+    // (a) the iOS profile create flow never sets that flag, leaving every
+    // existing row with is_primary=false, and (b) each user only ever has
+    // a single row in health_profiles — the primary distinction is handled
+    // separately by the family/caregiving layer. Order by is_primary first
+    // so that if a user does have one explicitly marked primary, we pick it.
+    const { data: profiles, error: profileError } = await supabase
       .from('health_profiles')
-      .select('id')
+      .select('id, is_primary, created_at')
       .eq('user_id', user.id)
-      .eq('is_primary', true)
-      .single()
+      .order('is_primary', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: true })
+      .limit(1)
 
-    if (profileError || !profile) {
+    if (profileError || !profiles || profiles.length === 0) {
       return new Response(JSON.stringify({ error: 'Health profile not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const healthProfileId = profile.id
+    const healthProfileId = profiles[0].id
 
     // Route handlers
     switch (req.method) {

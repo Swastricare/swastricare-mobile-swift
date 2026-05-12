@@ -26,6 +26,17 @@ struct GoalsSettingsView: View {
     @State private var showDietSettings = false
 
     @State private var isSaving = false
+    @State private var saveBanner: SaveBanner?
+
+    private enum SaveBanner: Identifiable {
+        case success, failure(String)
+        var id: String {
+            switch self {
+            case .success: return "success"
+            case .failure(let msg): return "failure-\(msg)"
+            }
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -56,6 +67,22 @@ struct GoalsSettingsView: View {
         }
         .sheet(isPresented: $showDietSettings) {
             DietSettingsView(viewModel: dietViewModel)
+        }
+        .alert(item: $saveBanner) { banner in
+            switch banner {
+            case .success:
+                return Alert(
+                    title: Text("Goals saved"),
+                    message: Text("Your activity goals have been updated."),
+                    dismissButton: .default(Text("OK"))
+                )
+            case .failure(let message):
+                return Alert(
+                    title: Text("Couldn't save goals"),
+                    message: Text(message),
+                    dismissButton: .default(Text("OK"))
+                )
+            }
         }
         .trackScreen("GoalsSettings")
     }
@@ -265,6 +292,7 @@ struct GoalsSettingsView: View {
 
     private func saveActivityGoals() {
         isSaving = true
+        runViewModel.clearError()
         Task {
             await runViewModel.updateGoals(
                 steps: Int(stepsGoal),
@@ -273,6 +301,15 @@ struct GoalsSettingsView: View {
             )
             await MainActor.run {
                 isSaving = false
+                if let error = runViewModel.errorMessage {
+                    saveBanner = .failure(error)
+                    runViewModel.clearError()
+                } else {
+                    saveBanner = .success
+                    stepsGoal = Double(runViewModel.activityGoal.dailyStepsGoal)
+                    distanceGoal = runViewModel.activityGoal.dailyDistanceGoal
+                    activeCaloriesGoal = Double(runViewModel.activityGoal.dailyCaloriesGoal)
+                }
             }
         }
     }

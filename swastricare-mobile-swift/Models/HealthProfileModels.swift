@@ -35,6 +35,7 @@ struct HealthProfile: Codable {
         case city
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+        case isPrimary = "is_primary"
     }
     
     init(
@@ -95,6 +96,10 @@ struct HealthProfile: Codable {
         try container.encode(heightCm, forKey: .heightCm)
         try container.encode(weightKg, forKey: .weightKg)
         try container.encodeIfPresent(bloodType, forKey: .bloodType)
+        // Always mark new profiles as primary — every user has exactly one
+        // health_profiles row and downstream code (edge functions, family
+        // queries) keys off is_primary.
+        try container.encode(true, forKey: .isPrimary)
         // Note: city is not encoded because the health_profiles table has no city column
         
         // Encode dateOfBirth as date-only string (PostgreSQL date type)
