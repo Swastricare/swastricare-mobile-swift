@@ -142,7 +142,8 @@ fun MedicationsScreen(
                 // ── Today's Schedule ──
                 item {
                     TodayScheduleHeader(
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                        onViewAll = onNavigateToAllMedications
                     )
                 }
 

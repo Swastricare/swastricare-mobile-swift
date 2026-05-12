@@ -496,7 +496,10 @@ class MedicationsViewModel @Inject constructor(
                 )
             }
 
-            // Active medications: check if the medication applies to the selected date
+            // Active medications: check if the medication applies to the selected date.
+            // If not (start date in future or end date passed), still keep the medication
+            // in the list with no doses for the day — so users can see their full history
+            // in the All Medications screen and the "Completed" filter works.
             val startDate = runCatching { med.startDate?.let { LocalDate.parse(it.take(10)) } }.getOrNull()
             val endDate = runCatching { med.endDate?.let { LocalDate.parse(it.take(10)) } }.getOrNull()
             val isActiveOnDate = when {
@@ -505,8 +508,13 @@ class MedicationsViewModel @Inject constructor(
                 else -> true
             }
 
-            // Exclude medications not yet started or already ended from the list entirely
-            if (!isActiveOnDate) return@mapNotNull null
+            if (!isActiveOnDate) {
+                return@mapNotNull MedicationWithDoses(
+                    medication = med,
+                    schedules = medSchedules,
+                    todayDoses = emptyList()
+                )
+            }
 
             val medLogs = logs.filter { it.medicationId == med.id }
             val doses = medSchedules.flatMap { schedule ->

@@ -968,7 +968,10 @@ private fun MedStatBox(value: String, label: String, modifier: Modifier = Modifi
 // ─────────────────────────────────────
 
 @Composable
-fun TodayScheduleHeader(modifier: Modifier = Modifier) {
+fun TodayScheduleHeader(
+    modifier: Modifier = Modifier,
+    onViewAll: (() -> Unit)? = null
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -984,7 +987,13 @@ fun TodayScheduleHeader(modifier: Modifier = Modifier) {
             "View all",
             fontSize = 13.sp,
             color = AITeal,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            modifier = if (onViewAll != null) {
+                Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onViewAll() }
+            } else Modifier
         )
     }
 }

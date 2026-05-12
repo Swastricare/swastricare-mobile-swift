@@ -115,13 +115,31 @@ class SupabaseProfileRepository @javax.inject.Inject constructor(
 
     override suspend fun getHealthProfile(userId: String): HealthProfile? {
         return try {
-            supabaseClient.postgrest["health_profiles"]
+            // Prefer the primary profile (set by the is_primary backfill migration).
+            // A user may have multiple health_profiles rows from prior onboarding
+            // attempts; without this filter we'd pick an arbitrary one and lose
+            // access to medications/data tied to the canonical profile.
+            val primary = supabaseClient.postgrest["health_profiles"]
                 .select {
                     filter {
                         eq("user_id", userId)
+                        eq("is_primary", true)
                     }
                 }
-                .decodeSingleOrNull<HealthProfile>()
+                .decodeList<HealthProfile>()
+                .firstOrNull()
+            if (primary != null) return primary
+
+            // Defensive fallback: no row marked primary — pick the oldest row
+            // (matches the backfill migration's tiebreak rule).
+            supabaseClient.postgrest["health_profiles"]
+                .select {
+                    filter { eq("user_id", userId) }
+                    order("created_at", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+                    limit(1)
+                }
+                .decodeList<HealthProfile>()
+                .firstOrNull()
         } catch (e: Exception) {
             Log.w(TAG, "Failed to fetch health profile: ${e.message}")
             null
