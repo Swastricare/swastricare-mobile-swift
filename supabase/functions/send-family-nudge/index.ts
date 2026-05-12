@@ -254,9 +254,15 @@ serve(async (req) => {
       const userClient = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       })
-      const { data: { user }, error: authError } = await userClient.auth.getUser()
+      // Pass the JWT explicitly — getUser() with no arg reads from the client's
+      // session (which we never sign into), so it returns null and we'd 401
+      // every legitimate caller. With ES256 sessions in this project, the gateway
+      // can't pre-verify either; the auth service does the validation here.
+      const token = authHeader.replace(/^Bearer\s+/i, '')
+      const { data: { user }, error: authError } = await userClient.auth.getUser(token)
       if (authError || !user) {
-        return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
+        console.error('auth.getUser failed:', authError?.message)
+        return new Response(JSON.stringify({ error: 'Invalid authentication', details: authError?.message }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
