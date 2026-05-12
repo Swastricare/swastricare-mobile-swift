@@ -144,68 +144,54 @@ struct OptionalUpdateCard: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.white.ignoresSafeArea()
-
-            Image("update-bottom")
+        VStack(spacing: 0) {
+            Image("update-hero")
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity)
-                .ignoresSafeArea(edges: .bottom)
+                .frame(height: 150)
 
-            VStack(spacing: 0) {
-                Image("update-hero")
-                    .resizable()
-                    .scaledToFit()
+            Text(resolvedTitle)
+                .font(.poppins(.bold, size: 22))
+                .foregroundColor(Color(hex: "0F172A"))
+                .multilineTextAlignment(.center)
+
+            Spacer().frame(height: 8)
+
+            Text(resolvedMessage)
+                .font(.poppins(.regular, size: 14))
+                .foregroundColor(Color(hex: "64748B"))
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+                .padding(.horizontal, 8)
+
+            Spacer().frame(height: 22)
+
+            Button(action: {
+                appVersionService.openAppStore()
+                onDismiss()
+            }) {
+                Text("Update Now")
+                    .font(.poppins(.semiBold, size: 16))
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 180)
-
-                Spacer().frame(height: 4)
-
-                Text(resolvedTitle)
-                    .font(.poppins(.bold, size: 22))
-                    .foregroundColor(Color(hex: "0F172A"))
-                    .multilineTextAlignment(.center)
-
-                Spacer().frame(height: 8)
-
-                Text(resolvedMessage)
-                    .font(.poppins(.regular, size: 14))
-                    .foregroundColor(Color(hex: "64748B"))
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-                    .padding(.horizontal, 8)
-
-                Spacer().frame(height: 24)
-
-                Button(action: {
-                    appVersionService.openAppStore()
-                    onDismiss()
-                }) {
-                    Text("Update Now")
-                        .font(.poppins(.semiBold, size: 16))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(AppColors.aiTeal)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                }
-                .buttonStyle(ScaleButtonStyle())
-
-                Spacer().frame(height: 6)
-
-                Button(action: onDismiss) {
-                    Text("Maybe Later")
-                        .font(.poppins(.medium, size: 14))
-                        .foregroundColor(Color(hex: "64748B"))
-                        .padding(10)
-                }
-
-                Spacer().frame(height: 16)
+                    .frame(height: 52)
+                    .background(AppColors.aiTeal)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
+            .buttonStyle(ScaleButtonStyle())
+
+            Button(action: onDismiss) {
+                Text("Maybe Later")
+                    .font(.poppins(.medium, size: 14))
+                    .foregroundColor(Color(hex: "64748B"))
+                    .padding(.vertical, 10)
+            }
+            .padding(.top, 2)
         }
+        .padding(.horizontal, 24)
+        .padding(.bottom, 8)
+        .background(Color.white)
         .trackScreen("OptionalUpdate")
     }
 }
@@ -255,7 +241,7 @@ struct OptionalUpdateAlertModifier: ViewModifier {
                     appVersionService: appVersionService,
                     onDismiss: { isPresented = false }
                 )
-                .presentationDetents([.height(560)])
+                .presentationDetents([.height(400)])
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(28)
                 .presentationBackground(Color.white)
