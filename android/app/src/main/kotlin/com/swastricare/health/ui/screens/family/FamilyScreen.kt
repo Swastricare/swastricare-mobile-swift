@@ -63,6 +63,7 @@ private const val BANNER_ASSET = "file:///android_asset/images/family%20screen%2
 @Composable
 fun FamilyScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToMember: (String) -> Unit = {},
     initialJoinCode: String? = null
 ) {
     TrackScreen("Family")
@@ -129,7 +130,10 @@ fun FamilyScreen(
                         onToggleEditMode = { editMode = !editMode },
                         onAddMember = { showInviteSheet = true },
                         onRemoveMember = { vm.showRemoveMemberDialog(it) },
-                        onMemberViewed = { vm.trackFamilyMemberViewed() }
+                        onMemberClick = { member ->
+                            vm.trackFamilyMemberViewed()
+                            onNavigateToMember(member.healthProfileId)
+                        }
                     )
                 }
                 else -> {
@@ -348,7 +352,7 @@ private fun InGroupContent(
     onToggleEditMode: () -> Unit,
     onAddMember: () -> Unit,
     onRemoveMember: (FamilyMember) -> Unit,
-    onMemberViewed: () -> Unit
+    onMemberClick: (FamilyMember) -> Unit
 ) {
     val currentUserId = uiState.currentMember?.userId
     val showEdit = uiState.canManageMembers
@@ -399,7 +403,7 @@ private fun InGroupContent(
                 isCurrent = isCurrent,
                 editMode = editMode,
                 canRemove = canRemove,
-                onClick = { if (!editMode) onMemberViewed() },
+                onClick = { if (!editMode) onMemberClick(member) },
                 onRemove = { onRemoveMember(member) }
             )
             Spacer(Modifier.height(8.dp))

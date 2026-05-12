@@ -1,6 +1,7 @@
 package com.swastricare.health.domain.repository
 
 import com.swastricare.health.core.result.ResultWrapper
+import com.swastricare.health.domain.model.HeartRateSnapshot
 import com.swastricare.health.domain.model.heartrate.HeartRateMeasurement
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
@@ -69,4 +70,12 @@ interface HeartRateRepository {
      * Fetch heart rate data from Health Connect.
      */
     suspend fun fetchFromHealthConnect(): ResultWrapper<List<HeartRateMeasurement>>
+
+    // ── Family Dashboard ──
+
+    /**
+     * Latest heart-rate row for the given profile (from `vital_signs`).
+     * Returns null wrapped in success when the profile has no measurements yet.
+     */
+    suspend fun getLatestForProfile(profileId: String): Result<HeartRateSnapshot?>
 }

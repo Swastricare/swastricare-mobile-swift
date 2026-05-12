@@ -5,6 +5,7 @@ import com.swastricare.health.core.logger.Logger
 import com.swastricare.health.core.result.AppException
 import com.swastricare.health.core.result.ResultWrapper
 import com.swastricare.health.data.services.HealthConnectService
+import com.swastricare.health.domain.model.HeartRateSnapshot
 import com.swastricare.health.domain.model.heartrate.HeartRateMeasurement
 import com.swastricare.health.domain.model.heartrate.MeasurementSource
 import com.swastricare.health.domain.model.heartrate.SignalQuality
@@ -212,6 +213,34 @@ class HeartRateRepositoryImpl @Inject constructor(
             ResultWrapper.Error(AppException.UnknownException("Health Connect fetch failed", e))
         }
     }
+
+    // ── Family Dashboard ──
+
+    override suspend fun getLatestForProfile(profileId: String): Result<HeartRateSnapshot?> =
+        withContext(Dispatchers.IO) {
+            try {
+                val rows = supabaseClient.from("vital_signs").select {
+                    filter {
+                        eq("health_profile_id", profileId)
+                        // Exclude rows that only carry other vitals (e.g. BP/glucose)
+                        // by requiring a non-null heart rate.
+                        gt("heart_rate", 0)
+                    }
+                    order("measured_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                    limit(1)
+                }.decodeList<VitalSignRecord>()
+
+                val row = rows.firstOrNull()
+                if (row == null) {
+                    Result.success(null)
+                } else {
+                    Result.success(HeartRateSnapshot(bpm = row.heartRate, measuredAt = row.measuredAt))
+                }
+            } catch (e: Exception) {
+                logger.e(TAG, "Failed to fetch latest heart rate for profile=$profileId", e)
+                Result.failure(e)
+            }
+        }
 
     // ── Private helpers ──
 

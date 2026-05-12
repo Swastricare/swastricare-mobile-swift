@@ -120,6 +120,14 @@
                 <data android:scheme="swastricareapp" />
                 <data android:scheme="swastricare" />
             </intent-filter>
+
+            <!-- FCM nudge deep link (swastricareapp://nudge/<id>) -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="swastricareapp" android:host="nudge" />
+            </intent-filter>
         </activity>
 
         <!-- Health Connect permissions activity alias -->
@@ -232,6 +240,15 @@
             android:name="com.swastricare.health.data.services.WorkoutNotificationService"
             android:foregroundServiceType="location"
             android:exported="false" />
+
+        <!-- Firebase Cloud Messaging service (handles token refresh + push delivery) -->
+        <service
+            android:name="com.swastricare.health.notifications.SwastricareMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <!-- FileProvider for GPX exports -->
         <provider

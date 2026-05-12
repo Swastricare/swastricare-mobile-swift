@@ -104,4 +104,14 @@ interface DietRepository {
      * Analyzes a food image using AI.
      */
     suspend fun analyzeFoodImage(imageBase64: String): ResultWrapper<AnalyzedFood>
+
+    // ─────────────────────────────────────
+    // MARK: - Family Dashboard
+    // ─────────────────────────────────────
+
+    /**
+     * Sum the calorie intake from `diet_logs` for the given profile on [date].
+     * Returns 0 (wrapped in Success) when the profile has no entries.
+     */
+    suspend fun getDayCalories(profileId: String, date: LocalDate): ResultWrapper<Int>
 }

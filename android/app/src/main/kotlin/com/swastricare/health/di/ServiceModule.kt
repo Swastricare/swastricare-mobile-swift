@@ -71,9 +71,10 @@ object ServiceModule {
     fun provideSupabaseAuthRepository(
         supabaseClient: SupabaseClient,
         sharedPreferences: SharedPreferences,
-        cacheService: CacheService
+        cacheService: CacheService,
+        dataStore: androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences>
     ): SupabaseAuthRepository {
-        return SupabaseAuthRepository(supabaseClient, sharedPreferences, cacheService)
+        return SupabaseAuthRepository(supabaseClient, sharedPreferences, cacheService, dataStore)
     }
 
     /**
@@ -114,14 +115,17 @@ object ServiceModule {
 
     /**
      * Provides SessionManager singleton.
-     * Observes Supabase auth session and detects token expiry.
+     * Observes Supabase auth session, detects token expiry, and registers the
+     * device's FCM token on each successful authentication.
      */
     @Provides
     @Singleton
     fun provideSessionManager(
-        supabaseClient: SupabaseClient
+        supabaseClient: SupabaseClient,
+        deviceTokenRepository: com.swastricare.health.data.repository.DeviceTokenRepository,
+        @ApplicationContext context: Context
     ): SessionManager {
-        return SessionManager(supabaseClient)
+        return SessionManager(supabaseClient, deviceTokenRepository, context)
     }
 
     @Provides

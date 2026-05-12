@@ -73,4 +73,25 @@ object NavArgs {
     const val WORKOUT_TYPE = "type"
     const val FAMILY_CODE = "code"
     const val METRIC_TYPE = "metricType"
+    const val NUDGE_ID = "nudgeId"
+    const val HEALTH_PROFILE_ID = "healthProfileId"
+}
+
+/**
+ * Family member sub-routes. The dashboard itself is opened from [FamilyScreen];
+ * the four child routes are wired here even though three of them are
+ * placeholders filled in by later batches (G/H/I/J).
+ */
+object FamilyMemberRoutes {
+    const val FAMILY_MEMBER_DASHBOARD = "family/member/{healthProfileId}"
+    const val FAMILY_MEMBER_NUDGE = "family/member/{healthProfileId}/nudge"
+    const val FAMILY_MEMBER_AI = "family/member/{healthProfileId}/ai"
+    const val FAMILY_MEMBER_REMINDERS = "family/member/{healthProfileId}/reminders"
+    const val FAMILY_MEMBER_ALERT_PREFS = "family/member/{healthProfileId}/alert-prefs"
+
+    fun dashboard(profileId: String) = "family/member/$profileId"
+    fun nudge(profileId: String) = "family/member/$profileId/nudge"
+    fun ai(profileId: String) = "family/member/$profileId/ai"
+    fun reminders(profileId: String) = "family/member/$profileId/reminders"
+    fun alertPrefs(profileId: String) = "family/member/$profileId/alert-prefs"
 }

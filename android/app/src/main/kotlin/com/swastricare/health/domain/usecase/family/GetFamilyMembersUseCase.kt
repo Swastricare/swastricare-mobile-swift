@@ -42,9 +42,13 @@ class GetFamilyMembersUseCase @Inject constructor(
             is ResultWrapper.Success -> {
                 val members = result.data
 
-                // Verify requesting user is a member of the group
-                val isMember = members.any { it.userId == requestingUserId }
-                if (!isMember) {
+                // Note: membership verification by `userId` was previously enforced here,
+                // but it broke when health_profiles.user_id couldn't be resolved via the
+                // embedded join (RLS on health_profiles, or for profiles not owned by the
+                // caller). RLS on family_members already restricts visibility to active
+                // members of groups the caller belongs to, so the server-side check is
+                // sufficient. If the caller can't see the group, RLS returns an empty list.
+                if (members.isEmpty()) {
                     return ResultWrapper.Error(
                         AppException.ValidationException.Custom(
                             "You are not a member of this family group"

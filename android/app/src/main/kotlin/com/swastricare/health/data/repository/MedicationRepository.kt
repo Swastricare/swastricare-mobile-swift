@@ -37,12 +37,11 @@ class SupabaseMedicationRepository @javax.inject.Inject constructor(
 
     override suspend fun fetchMedications(profileId: String): List<MedicationDto> {
         return try {
+            // Return ALL medications for this profile regardless of status so the
+            // All Medications screen can show full history — including ones marked
+            // discontinued/stopped/completed. The UI's filter tabs decide what's shown.
             supabaseClient.from("medications").select {
-                filter {
-                    eq("health_profile_id", profileId)
-                    // Exclude soft-deleted records; all other statuses (active, completed, paused, stopped) are shown
-                    neq("status", "discontinued")
-                }
+                filter { eq("health_profile_id", profileId) }
             }.decodeList<MedicationDto>()
         } catch (e: Exception) {
             // Fall back to cache on network error

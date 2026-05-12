@@ -12,6 +12,8 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -111,6 +113,31 @@ class SleepRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             logger.e(TAG, "Failed to save manual sleep", e)
             ResultWrapper.Error(AppException.UnknownException("Failed to save sleep", e))
+        }
+    }
+
+    @Serializable
+    private data class SleepHoursRow(@SerialName("sleep_hours") val sleepHours: Double? = null)
+
+    override suspend fun getNightSleepHours(
+        profileId: String,
+        date: LocalDate
+    ): ResultWrapper<Double?> = withContext(Dispatchers.IO) {
+        try {
+            val rows = supabaseClient.from("daily_health_metrics").select(
+                columns = io.github.jan.supabase.postgrest.query.Columns.raw("sleep_hours")
+            ) {
+                filter {
+                    eq("health_profile_id", profileId)
+                    eq("metric_date", date.toString())
+                }
+                limit(1)
+            }.decodeList<SleepHoursRow>()
+
+            ResultWrapper.Success(rows.firstOrNull()?.sleepHours)
+        } catch (e: Exception) {
+            logger.e(TAG, "Failed to fetch night sleep hours for profile=$profileId date=$date", e)
+            ResultWrapper.Error(AppException.UnknownException("Failed to fetch sleep hours", e))
         }
     }
 }

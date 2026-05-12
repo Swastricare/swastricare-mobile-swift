@@ -1,6 +1,11 @@
 package com.swastricare.health.data.services
 
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
+import com.google.firebase.messaging.FirebaseMessaging
+import com.swastricare.health.data.repository.DeviceTokenRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
@@ -11,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 /**
  * Observes the Supabase auth session status and detects session expiry.
@@ -23,7 +29,9 @@ import kotlinx.coroutines.launch
  * intentionally ignored to avoid a false-positive redirect on cold launch.
  */
 class SessionManager(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val deviceTokenRepository: DeviceTokenRepository,
+    private val applicationContext: Context
 ) {
     companion object {
         private const val TAG = "SessionManager"
@@ -40,6 +48,12 @@ class SessionManager(
     /** Tracks whether the user was previously authenticated in this app session. */
     private var wasAuthenticated = false
 
+    /**
+     * Tracks the user id we've already registered an FCM token for this process,
+     * so we don't hammer Supabase on every transient session emission.
+     */
+    private var lastRegisteredFcmUserId: String? = null
+
     init {
         observeSessionStatus()
     }
@@ -53,6 +67,8 @@ class SessionManager(
                         wasAuthenticated = true
                         // Reset expired flag when a valid session is established
                         _isSessionExpired.value = false
+                        // Register / refresh the FCM token for this user (once per process).
+                        registerFcmTokenIfNeeded(status.session.user?.id)
                     }
 
                     is SessionStatus.NotAuthenticated -> {
@@ -66,6 +82,8 @@ class SessionManager(
                         } else {
                             Log.d(TAG, "Session status: NotAuthenticated (initial — no redirect)")
                         }
+                        // Allow re-registration on the next successful auth.
+                        lastRegisteredFcmUserId = null
                     }
 
                     is SessionStatus.LoadingFromStorage -> {
@@ -94,5 +112,42 @@ class SessionManager(
     /** Cancel the observation scope to prevent leaks. */
     fun cleanup() {
         job.cancel()
+    }
+
+    /**
+     * Fetch the current FCM token and upsert it to Supabase for the given user.
+     * No-op when [userId] is null or when we've already registered this user
+     * in the current process lifetime.
+     *
+     * Failures are swallowed (logged only) — push registration must never block
+     * the auth UI flow.
+     */
+    private fun registerFcmTokenIfNeeded(userId: String?) {
+        if (userId.isNullOrBlank()) return
+        if (userId == lastRegisteredFcmUserId) return
+        lastRegisteredFcmUserId = userId
+
+        scope.launch {
+            try {
+                val token = FirebaseMessaging.getInstance().token.await()
+                val versionName = try {
+                    applicationContext.packageManager
+                        .getPackageInfo(applicationContext.packageName, 0)
+                        .versionName
+                } catch (e: PackageManager.NameNotFoundException) {
+                    null
+                }
+                deviceTokenRepository.upsertToken(
+                    userId = userId,
+                    token = token,
+                    appVersion = versionName,
+                    deviceModel = Build.MODEL
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "FCM token registration failed: ${e.message}")
+                // Allow a retry on the next session emission (e.g. token refresh).
+                lastRegisteredFcmUserId = null
+            }
+        }
     }
 }

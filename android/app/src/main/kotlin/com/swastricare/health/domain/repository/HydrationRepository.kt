@@ -68,4 +68,13 @@ interface HydrationRepository {
      * Delete a hydration entry from cloud.
      */
     suspend fun deleteCloudEntry(id: String): ResultWrapper<Unit>
+
+    /**
+     * Sum hydration intake (`amount_ml`) for a target profile on a UTC day.
+     * Used by the family-member dashboard. Returns 0 on empty / error windows.
+     */
+    suspend fun getTodayTotalMl(
+        profileId: String,
+        date: java.time.LocalDate
+    ): ResultWrapper<Int>
 }

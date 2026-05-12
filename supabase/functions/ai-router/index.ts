@@ -183,7 +183,15 @@ serve(async (req) => {
     if (corsResponse) return corsResponse
 
     const payload = await req.json()
-    const { message, conversationHistory, imageData, forceModel, systemContext } = payload
+    const { message, conversationHistory, imageData, forceModel, systemContext, healthContext } = payload
+
+    // Family-member chats pass a structured "today's snapshot" via healthContext.
+    // Merge it into systemContext so downstream chat functions consume one
+    // unified context string. healthContext takes precedence (more recent /
+    // member-specific data).
+    const mergedSystemContext = [healthContext, systemContext]
+      .filter(s => typeof s === 'string' && s.trim().length > 0)
+      .join('\n\n')
 
     console.log('=== AI ROUTER ===')
     console.log('Incoming payload:', {
@@ -277,7 +285,7 @@ serve(async (req) => {
       message,
       conversationHistory,
       ...(imageData && { imageData }),
-      ...(systemContext && { systemContext }),
+      ...(mergedSystemContext && { systemContext: mergedSystemContext }),
       ...(hasImageData(payload) && isFoodImageRequest(message) && { analysisType: 'food' }),
       routedFrom: 'ai-router',
       originalModel: targetModel

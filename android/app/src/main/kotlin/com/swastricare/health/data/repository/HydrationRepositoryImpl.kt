@@ -13,8 +13,12 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 /**
@@ -171,6 +175,36 @@ class HydrationRepositoryImpl @Inject constructor(
             ResultWrapper.Success(Unit)
         } catch (e: Exception) {
             logger.e(TAG, "Failed to sync entries to cloud", e)
+            ResultWrapper.Error(mapException(e))
+        }
+    }
+
+    @Serializable
+    private data class AmountRow(@SerialName("amount_ml") val amountMl: Int)
+
+    override suspend fun getTodayTotalMl(
+        profileId: String,
+        date: LocalDate
+    ): ResultWrapper<Int> = withContext(Dispatchers.IO) {
+        try {
+            val start = date.atStartOfDay().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            val end = date.plusDays(1)
+                .atStartOfDay().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+
+            val rows = supabaseClient.from("hydration_logs").select(
+                columns = io.github.jan.supabase.postgrest.query.Columns.raw("amount_ml")
+            ) {
+                filter {
+                    eq("health_profile_id", profileId)
+                    gte("consumed_at", start)
+                    lt("consumed_at", end)
+                }
+            }.decodeList<AmountRow>()
+
+            val total = rows.sumOf { it.amountMl }
+            ResultWrapper.Success(total)
+        } catch (e: Exception) {
+            logger.e(TAG, "Failed to fetch today's hydration total", e)
             ResultWrapper.Error(mapException(e))
         }
     }

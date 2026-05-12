@@ -5,10 +5,13 @@ import com.swastricare.health.core.result.AppException
 import com.swastricare.health.core.result.ResultWrapper
 import com.swastricare.health.data.mapper.VaultMapper
 import com.swastricare.health.data.remote.dto.vault.MedicalDocumentDto
+import com.swastricare.health.domain.model.VaultDocSummary
 import com.swastricare.health.domain.model.vault.DocumentCategory
 import com.swastricare.health.domain.model.vault.DocumentMetadata
 import com.swastricare.health.domain.model.vault.MedicalDocument
 import com.swastricare.health.domain.repository.VaultRepository
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
@@ -497,6 +500,59 @@ class VaultRepositoryImpl @Inject constructor(
                 ResultWrapper.Success(emptyList())
             } catch (e: Exception) {
                 logger.e(TAG, "Failed to fetch shared documents", e)
+                ResultWrapper.Error(mapException(e))
+            }
+        }
+
+    // ── Family Dashboard ──
+
+    /**
+     * Thin row used by [listForProfile]. Reads against the actual schema
+     * columns (`health_profile_id`, `title`, `document_type`, `created_at`)
+     * rather than the legacy DTO which uses `user_id` / `uploaded_at`.
+     */
+    @Serializable
+    private data class VaultSummaryRow(
+        val id: String,
+        val title: String,
+        @SerialName("document_type") val documentType: String? = null,
+        @SerialName("created_at") val createdAt: String,
+        @SerialName("file_url") val fileUrl: String? = null,
+        @SerialName("file_name") val fileName: String? = null,
+        @SerialName("file_size_bytes") val fileSizeBytes: Long? = null,
+        @SerialName("mime_type") val mimeType: String? = null,
+    )
+
+    override suspend fun listForProfile(profileId: String): ResultWrapper<List<VaultDocSummary>> =
+        withContext(Dispatchers.IO) {
+            try {
+                logger.d(TAG, "listForProfile query for profileId=$profileId")
+                val rows = supabaseClient.from(TABLE_NAME).select(
+                    columns = io.github.jan.supabase.postgrest.query.Columns.raw(
+                        "id, title, document_type, created_at, file_url, file_name, file_size_bytes, mime_type"
+                    )
+                ) {
+                    filter { eq("health_profile_id", profileId) }
+                    order("created_at", Order.DESCENDING)
+                }.decodeList<VaultSummaryRow>()
+                logger.d(TAG, "listForProfile got ${rows.size} rows. First: ${rows.firstOrNull()}")
+
+                val summaries = rows.map { row ->
+                    VaultDocSummary(
+                        id = row.id,
+                        name = row.title,
+                        docType = row.documentType,
+                        uploadedAt = row.createdAt,
+                        fileUrl = row.fileUrl,
+                        fileName = row.fileName,
+                        fileSizeBytes = row.fileSizeBytes,
+                        mimeType = row.mimeType,
+                    )
+                }
+                logger.d(TAG, "Fetched ${summaries.size} vault summaries for profile=$profileId")
+                ResultWrapper.Success(summaries)
+            } catch (e: Exception) {
+                logger.e(TAG, "Failed to list vault docs for profile=$profileId", e)
                 ResultWrapper.Error(mapException(e))
             }
         }

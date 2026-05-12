@@ -368,3 +368,14 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # function does its own auth check via userClient.auth.getUser().
 [functions.delete-account]
 verify_jwt = false
+
+# send-family-nudge: handles auth itself (validates caller user and family
+# membership) and supports an internal-caller path for cron-driven invocations
+# using the service-role key. Same ES256 gateway-mismatch reason as above.
+[functions.send-family-nudge]
+verify_jwt = false
+
+# detect-missed-medications: invoked only by pg_cron via shared secret header.
+# No user JWT involved.
+[functions.detect-missed-medications]
+verify_jwt = false

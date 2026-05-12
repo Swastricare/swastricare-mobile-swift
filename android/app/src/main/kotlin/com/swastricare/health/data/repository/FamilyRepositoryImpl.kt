@@ -168,6 +168,7 @@ class FamilyRepositoryImpl @Inject constructor(
 
     override suspend fun getMembers(groupId: String): ResultWrapper<List<FamilyMember>> {
         return try {
+            logger.d(tag, "getMembers query for groupId=$groupId")
             val memberDtos = supabaseClient.from("family_members")
                 .select(memberSelectColumns) {
                     filter {
@@ -176,6 +177,7 @@ class FamilyRepositoryImpl @Inject constructor(
                     }
                 }
                 .decodeList<FamilyMemberDto>()
+            logger.d(tag, "getMembers returned ${memberDtos.size} rows. First row: ${memberDtos.firstOrNull()}")
 
             ResultWrapper.Success(FamilyMapper.membersToDomainList(memberDtos))
         } catch (e: Exception) {

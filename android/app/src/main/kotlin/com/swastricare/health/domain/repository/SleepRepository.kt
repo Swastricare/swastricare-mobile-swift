@@ -41,4 +41,14 @@ interface SleepRepository {
      * Overwrites any previous manual entry for the same date.
      */
     suspend fun saveManualSession(session: SleepSession, profileId: String): ResultWrapper<Unit>
+
+    /**
+     * Total hours slept for the night ending on [date], read from
+     * `daily_health_metrics.sleep_hours` for the target profile. Returns
+     * null inside the success wrapper when no record exists for that date.
+     */
+    suspend fun getNightSleepHours(
+        profileId: String,
+        date: LocalDate
+    ): ResultWrapper<Double?>
 }

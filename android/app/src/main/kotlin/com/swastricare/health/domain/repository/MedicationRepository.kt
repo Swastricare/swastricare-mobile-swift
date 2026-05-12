@@ -1,8 +1,10 @@
 package com.swastricare.health.domain.repository
 
 import com.swastricare.health.domain.model.Medication
+import com.swastricare.health.domain.model.MedicationDoseSummary
 import com.swastricare.health.domain.model.MedicationLog
 import com.swastricare.health.domain.model.MedicationSchedule
+import com.swastricare.health.domain.model.MedicationWithSchedule
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -95,4 +97,45 @@ interface MedicationRepository {
      * Caches medications for offline access.
      */
     fun cacheMedications(medications: List<Medication>)
+
+    /**
+     * Returns a per-dose summary for [date] suitable for the family-member
+     * dashboard. Merges existing `medication_logs` rows with expected doses
+     * synthesised from active `medication_schedules` (`schedule_type = daily`).
+     *
+     * Doses without a matching log are emitted with `logId = null` and
+     * `status = "pending"`. The list is sorted ascending by `scheduledAt`.
+     */
+    suspend fun getDosesForDay(
+        profileId: String,
+        date: LocalDate
+    ): Result<List<MedicationDoseSummary>>
+
+    /**
+     * Lists every active `medication_schedules` row for [profileId] joined
+     * with its parent medication name. One row per schedule (a medication
+     * with multiple daily doses produces multiple rows). Used by the
+     * Family Member Reminders screen (Batch J).
+     */
+    suspend fun listMedicationsForProfile(
+        profileId: String
+    ): Result<List<MedicationWithSchedule>>
+
+    /**
+     * Updates `medication_schedules.time_of_day` for a single schedule.
+     * Caller must pass a `HH:mm:00` formatted string. Requires `can_edit`
+     * on the underlying health profile (enforced by RLS).
+     */
+    suspend fun updateScheduleTime(
+        scheduleId: String,
+        timeOfDay: String
+    ): Result<Unit>
+
+    /**
+     * Toggles `medication_schedules.reminder_enabled` for a single schedule.
+     */
+    suspend fun setReminderEnabled(
+        scheduleId: String,
+        enabled: Boolean
+    ): Result<Unit>
 }

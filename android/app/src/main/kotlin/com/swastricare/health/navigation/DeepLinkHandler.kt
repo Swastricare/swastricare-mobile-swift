@@ -39,6 +39,9 @@ sealed class DeepLinkRoute {
     /** Navigate to Family join flow with an invite code */
     data class FamilyJoin(val code: String) : DeepLinkRoute()
 
+    /** Open a specific FCM nudge by id (swastricareapp://nudge/<id>) */
+    data class NudgeDetail(val nudgeId: String) : DeepLinkRoute()
+
     /** Unknown/unsupported deep link */
     object Unknown : DeepLinkRoute()
 }
@@ -106,6 +109,11 @@ object DeepLinkHandler {
                     DeepLinkRoute.Unknown
                 }
             }
+            "nudge" -> {
+                // swastricareapp://nudge/<nudgeId>
+                val id = pathSegments.firstOrNull()?.takeIf { it.isNotBlank() }
+                if (id != null) DeepLinkRoute.NudgeDetail(id) else DeepLinkRoute.Unknown
+            }
             else -> DeepLinkRoute.Unknown
         }
     }
@@ -133,6 +141,7 @@ object DeepLinkHandler {
         is DeepLinkRoute.Vault -> "vault"
         is DeepLinkRoute.AI -> "ai"
         is DeepLinkRoute.FamilyJoin -> "family_join/${route.code}"
+        is DeepLinkRoute.NudgeDetail -> "nudge/${route.nudgeId}"
         is DeepLinkRoute.Unknown -> "vitals"
     }
 }

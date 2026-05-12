@@ -8,6 +8,8 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -51,6 +53,9 @@ import com.swastricare.health.ui.screens.diet.AddFoodScreen
 import com.swastricare.health.ui.screens.diet.DietScreen
 import com.swastricare.health.ui.screens.diet.FoodSnapScreen
 import com.swastricare.health.ui.screens.family.FamilyScreen
+import com.swastricare.health.ui.screens.family.member.FamilyMemberDashboardScreen
+import com.swastricare.health.ui.screens.family.member.FamilyNudgeScreen
+import com.swastricare.health.ui.screens.family.member.FamilyNudgeViewModel
 import com.swastricare.health.ui.screens.heartrate.HeartRateAnalyticsScreen
 import com.swastricare.health.ui.screens.heartrate.HeartRateScreen
 import com.swastricare.health.ui.screens.hydration.HydrationScreen
@@ -68,6 +73,7 @@ import com.swastricare.health.ui.screens.menstrualcycle.MenstrualCycleScreen
 import com.swastricare.health.ui.screens.menstrualcycle.MenstrualCycleViewModel
 import com.swastricare.health.ui.screens.notifications.NotificationHistoryScreen
 import com.swastricare.health.ui.screens.notifications.NotificationSettingsScreen
+import com.swastricare.health.ui.screens.nudge.NudgeDetailScreen
 import com.swastricare.health.ui.screens.onboarding.ConsentScreen
 import com.swastricare.health.ui.screens.onboarding.OnboardingScreen
 import com.swastricare.health.ui.screens.onboarding.OneQuestionOnboardingScreen
@@ -754,7 +760,12 @@ private fun NavGraphBuilder.addDetailRoutes(
 
     // ─── Family ───
     detailComposable("family") {
-        FamilyScreen(onNavigateBack = { navController.popBackStack() })
+        FamilyScreen(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToMember = { profileId ->
+                navController.navigate(FamilyMemberRoutes.dashboard(profileId))
+            }
+        )
     }
 
     detailComposable(
@@ -764,7 +775,92 @@ private fun NavGraphBuilder.addDetailRoutes(
         val code = backStackEntry.arguments?.getString(NavArgs.FAMILY_CODE) ?: ""
         FamilyScreen(
             onNavigateBack = { navController.popBackStack() },
+            onNavigateToMember = { profileId ->
+                navController.navigate(FamilyMemberRoutes.dashboard(profileId))
+            },
             initialJoinCode = code
+        )
+    }
+
+    // ─── Family Member Dashboard (Batch F) ───
+    detailComposable(
+        route = FamilyMemberRoutes.FAMILY_MEMBER_DASHBOARD,
+        arguments = listOf(navArgument(NavArgs.HEALTH_PROFILE_ID) { type = NavType.StringType })
+    ) { backStackEntry ->
+        val profileId = backStackEntry.arguments?.getString(NavArgs.HEALTH_PROFILE_ID)
+            ?: return@detailComposable
+        FamilyMemberDashboardScreen(
+            targetHealthProfileId = profileId,
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToNudge = { id -> navController.navigate(FamilyMemberRoutes.nudge(id)) },
+            onNavigateToAskAI = { id -> navController.navigate(FamilyMemberRoutes.ai(id)) },
+            onNavigateToReminders = { id -> navController.navigate(FamilyMemberRoutes.reminders(id)) },
+            onNavigateToAlertPrefs = { id -> navController.navigate(FamilyMemberRoutes.alertPrefs(id)) },
+        )
+    }
+
+    // ─── Family Member child routes (placeholders filled in by Batches G/H/I/J) ───
+    detailComposable(
+        route = FamilyMemberRoutes.FAMILY_MEMBER_NUDGE,
+        arguments = listOf(navArgument(NavArgs.HEALTH_PROFILE_ID) { type = NavType.StringType })
+    ) { backStackEntry ->
+        val profileId = backStackEntry.arguments?.getString(NavArgs.HEALTH_PROFILE_ID)
+            ?: return@detailComposable
+        val nudgeViewModel: FamilyNudgeViewModel = hiltViewModel()
+        LaunchedEffect(profileId) {
+            nudgeViewModel.init(profileId)
+        }
+        FamilyNudgeScreen(
+            viewModel = nudgeViewModel,
+            navController = navController,
+        )
+    }
+
+    detailComposable(
+        route = FamilyMemberRoutes.FAMILY_MEMBER_AI,
+        arguments = listOf(navArgument(NavArgs.HEALTH_PROFILE_ID) { type = NavType.StringType })
+    ) { backStackEntry ->
+        val profileId = backStackEntry.arguments?.getString(NavArgs.HEALTH_PROFILE_ID)
+            ?: return@detailComposable
+        com.swastricare.health.ui.screens.family.member.FamilyMemberAIScreen(
+            healthProfileId = profileId,
+            navController = navController,
+        )
+    }
+
+    detailComposable(
+        route = FamilyMemberRoutes.FAMILY_MEMBER_REMINDERS,
+        arguments = listOf(navArgument(NavArgs.HEALTH_PROFILE_ID) { type = NavType.StringType })
+    ) { backStackEntry ->
+        val profileId = backStackEntry.arguments?.getString(NavArgs.HEALTH_PROFILE_ID)
+            ?: return@detailComposable
+        com.swastricare.health.ui.screens.family.member.FamilyMemberRemindersScreen(
+            healthProfileId = profileId,
+            onNavigateBack = { navController.popBackStack() },
+        )
+    }
+
+    detailComposable(
+        route = FamilyMemberRoutes.FAMILY_MEMBER_ALERT_PREFS,
+        arguments = listOf(navArgument(NavArgs.HEALTH_PROFILE_ID) { type = NavType.StringType })
+    ) { backStackEntry ->
+        val profileId = backStackEntry.arguments?.getString(NavArgs.HEALTH_PROFILE_ID)
+            ?: return@detailComposable
+        com.swastricare.health.ui.screens.family.member.FamilyAlertPreferencesScreen(
+            healthProfileId = profileId,
+            onNavigateBack = { navController.popBackStack() },
+        )
+    }
+
+    // ─── FCM Nudge (placeholder — full sheet lands in Batch G) ───
+    detailComposable(
+        route = "nudge/{${NavArgs.NUDGE_ID}}",
+        arguments = listOf(navArgument(NavArgs.NUDGE_ID) { type = NavType.StringType })
+    ) { backStackEntry ->
+        val id = backStackEntry.arguments?.getString(NavArgs.NUDGE_ID) ?: return@detailComposable
+        NudgeDetailScreen(
+            nudgeId = id,
+            onNavigateBack = { navController.popBackStack() }
         )
     }
 
@@ -809,5 +905,47 @@ private fun NavGraphBuilder.addDetailRoutes(
             onNavigateBack = { navController.popBackStack() },
             onNavigateToHealthConnect = { navController.navigate("health_connect_settings") }
         )
+    }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// Family member placeholder (Batches G/H/I/J will replace these)
+// ─────────────────────────────────────────────────────────────
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun FamilyMemberPlaceholder(
+    title: String,
+    note: String,
+    onBack: () -> Unit,
+) {
+    androidx.compose.foundation.layout.Column(
+        modifier = androidx.compose.ui.Modifier
+            .fillMaxSize()
+            .background(androidx.compose.ui.graphics.Color.White)
+    ) {
+        androidx.compose.material3.TopAppBar(
+            title = { androidx.compose.material3.Text(title) },
+            navigationIcon = {
+                androidx.compose.material3.IconButton(onClick = onBack) {
+                    androidx.compose.material3.Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back"
+                    )
+                }
+            },
+            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                containerColor = androidx.compose.ui.graphics.Color.White
+            )
+        )
+        androidx.compose.foundation.layout.Box(
+            modifier = androidx.compose.ui.Modifier.fillMaxSize(),
+            contentAlignment = androidx.compose.ui.Alignment.Center
+        ) {
+            androidx.compose.material3.Text(
+                note,
+                color = androidx.compose.ui.graphics.Color(0xFF6B7280)
+            )
+        }
     }
 }

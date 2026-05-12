@@ -1,6 +1,7 @@
 package com.swastricare.health.domain.repository
 
 import com.swastricare.health.core.result.ResultWrapper
+import com.swastricare.health.domain.model.VaultDocSummary
 import com.swastricare.health.domain.model.vault.DocumentCategory
 import com.swastricare.health.domain.model.vault.DocumentMetadata
 import com.swastricare.health.domain.model.vault.MedicalDocument
@@ -96,4 +97,14 @@ interface VaultRepository {
      * Get shared documents.
      */
     suspend fun getSharedDocuments(): ResultWrapper<List<MedicalDocument>>
+
+    // ── Family Dashboard ──
+
+    /**
+     * List a thin document summary for the target health profile, suitable
+     * for the family-member dashboard. Family-via-`has_family_access` reads
+     * are granted by Supabase RLS (migration 20260512000006), so caregivers
+     * can call this for member profiles without owning the profile.
+     */
+    suspend fun listForProfile(profileId: String): ResultWrapper<List<VaultDocSummary>>
 }

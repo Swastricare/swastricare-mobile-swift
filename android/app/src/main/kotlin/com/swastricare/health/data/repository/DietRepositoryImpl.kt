@@ -23,9 +23,12 @@ import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -408,6 +411,35 @@ class DietRepositoryImpl @Inject constructor(
 
     @kotlinx.serialization.Serializable
     private data class HealthProfileIdRow(val id: String)
+
+    @Serializable
+    private data class CaloriesRow(val calories: Double)
+
+    override suspend fun getDayCalories(
+        profileId: String,
+        date: LocalDate
+    ): ResultWrapper<Int> = withContext(Dispatchers.IO) {
+        try {
+            val start = date.atStartOfDay().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            val end = date.plusDays(1)
+                .atStartOfDay().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+
+            val rows = supabaseClient.from("diet_logs").select(
+                columns = io.github.jan.supabase.postgrest.query.Columns.raw("calories")
+            ) {
+                filter {
+                    eq("health_profile_id", profileId)
+                    gte("logged_at", start)
+                    lt("logged_at", end)
+                }
+            }.decodeList<CaloriesRow>()
+
+            val total = rows.sumOf { it.calories }.toInt()
+            ResultWrapper.Success(total)
+        } catch (e: Exception) {
+            ResultWrapper.Error(AppException.NetworkException.Unknown(e))
+        }
+    }
 
     private suspend fun resolveHealthProfileId(): String? {
         return try {
