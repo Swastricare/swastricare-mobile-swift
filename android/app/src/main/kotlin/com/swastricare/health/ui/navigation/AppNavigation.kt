@@ -89,6 +89,7 @@ import com.swastricare.health.ui.screens.sleep.LogSleepScreen
 import com.swastricare.health.ui.screens.sleep.SleepScreen
 import com.swastricare.health.ui.screens.splash.AuthGateScreen
 import com.swastricare.health.ui.screens.splash.SplashScreen
+import com.swastricare.health.ui.screens.splash.SplashViewModel
 import com.swastricare.health.ui.screens.stress.StressAnalyticsScreen
 import com.swastricare.health.ui.screens.stress.StressScreen
 import com.swastricare.health.ui.screens.update.ForceUpdateScreen
@@ -380,6 +381,27 @@ fun AppNavigation(
         // Main (bottom-nav shell)
         // ═══════════════════════════════════════════════════════════
         composable("main") {
+            // Force users with no health_profiles row through onboarding,
+            // even if they slipped past the splash gate (e.g. after a
+            // long background suspend or pre-update install).
+            val splashVm: SplashViewModel = hiltViewModel()
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        scope.launch {
+                            if (!splashVm.isHealthProfileComplete()) {
+                                navController.navigate("health_profile") {
+                                    popUpTo("main") { inclusive = true }
+                                }
+                            }
+                        }
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+            }
+
             MainScreen(
                 onSignOut = {
                     navVm.sessionManager.clearExpiredFlag()
