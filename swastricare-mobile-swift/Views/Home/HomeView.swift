@@ -46,6 +46,7 @@ struct HomeView: View {
     @State private var showFamily = false
     @State private var showSyncAlert = false
     @State private var syncMessage: String?
+    @State private var hasAutoPromptedHealth = false
 
     // MARK: - Computed
 
@@ -232,6 +233,15 @@ struct HomeView: View {
             }
         }
         .task {
+            // Auto-prompt Apple Health permission on first appear (mirrors Android HomeScreenV3).
+            if !hasAutoPromptedHealth,
+               !viewModel.isAuthorized,
+               !viewModel.hasRequestedAuth,
+               HealthKitService.shared.isHealthDataAvailable {
+                hasAutoPromptedHealth = true
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                await viewModel.requestAuthorization()
+            }
             await viewModel.loadTodaysData()
             await trackerViewModel.loadData()
             await hydrationViewModel.loadData()
