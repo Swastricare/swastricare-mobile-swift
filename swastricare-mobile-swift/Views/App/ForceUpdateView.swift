@@ -2,252 +2,243 @@
 //  ForceUpdateView.swift
 //  swastricare-mobile-swift
 //
-//  MVVM Architecture - Views Layer
-//  Displays force update or optional update prompts
+//  Update Required / Update Available presentations. Mirrors the redesigned
+//  Android screens — pure white surface, AITeal accent, leafy hero + bottom
+//  band, three benefit rows. ForceUpdateView is the blocking full-screen.
+//  OptionalUpdateCard is the dismissible sheet card.
 //
 
 import SwiftUI
 
-// MARK: - Force Update View
+// MARK: - Force Update View (blocking full screen)
 
 struct ForceUpdateView: View {
-    
+
     @ObservedObject var appVersionService: AppVersionService
-    @Environment(\.colorScheme) var colorScheme
-    
+
+    /// When provided, the "Not Now" link is shown. Used by callers that want a
+    /// non-blocking variant; the navigation root keeps this nil for true force
+    /// updates so back gestures cannot escape the screen.
     let onSkip: (() -> Void)?
-    
-    @State private var isAnimating = false
-    @State private var scale: CGFloat = 0.8
-    @State private var opacity: Double = 0
-    
-    private var isForced: Bool {
-        if case .forceUpdateRequired = appVersionService.updateStatus {
-            return true
-        }
-        return false
+
+    private var resolvedTitle: String {
+        appVersionService.versionInfo?.updateTitle ?? "Update Required"
     }
-    
-    private var latestVersion: String {
-        switch appVersionService.updateStatus {
-        case .forceUpdateRequired(let version), .updateAvailable(let version, _):
-            return version
-        default:
-            return appVersionService.versionInfo?.latestVersion ?? "Unknown"
-        }
+
+    private var resolvedMessage: String {
+        appVersionService.versionInfo?.updateMessage
+            ?? "A new version of the app is available. Update now to continue using all features and improvements."
     }
-    
+
     var body: some View {
         ZStack {
-            // Premium Background
-            PremiumBackground()
-            
-            VStack(spacing: 32) {
+            Color.white.ignoresSafeArea()
+
+            // Decorative leafy band at the bottom
+            VStack {
                 Spacer()
-                
-                // Update Icon
-                updateIcon
-                
-                // Title & Message
-                titleSection
-                
-                // Version Info
-                versionInfoSection
-                
-                Spacer()
-                
-                // Action Buttons
-                actionButtons
-                
-                // Skip option (only for optional updates)
-                if !isForced, let skip = onSkip {
-                    skipButton(action: skip)
+                Image("update-bottom")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity)
+                    .ignoresSafeArea(edges: .bottom)
+            }
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    Spacer().frame(height: 8)
+
+                    Image("update-hero")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 260)
+
+                    Spacer().frame(height: 8)
+
+                    Text(resolvedTitle)
+                        .font(.poppins(.bold, size: 26))
+                        .foregroundColor(Color(hex: "0F172A"))
+                        .multilineTextAlignment(.center)
+
+                    Spacer().frame(height: 10)
+
+                    Text(resolvedMessage)
+                        .font(.poppins(.regular, size: 14))
+                        .foregroundColor(Color(hex: "64748B"))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 8)
+                        .lineSpacing(4)
+
+                    Spacer().frame(height: 28)
+
+                    VStack(spacing: 18) {
+                        UpdateBenefitRow(
+                            systemImage: "shield",
+                            title: "Better Performance",
+                            subtitle: "Faster and more reliable experience"
+                        )
+                        UpdateBenefitRow(
+                            systemImage: "star",
+                            title: "New Features",
+                            subtitle: "Exciting features and improvements"
+                        )
+                        UpdateBenefitRow(
+                            systemImage: "lock",
+                            title: "Enhanced Security",
+                            subtitle: "Stronger protection for your data"
+                        )
+                    }
+
+                    Spacer().frame(height: 40)
+
+                    Button(action: { appVersionService.openAppStore() }) {
+                        Text("Update Now")
+                            .font(.poppins(.semiBold, size: 16))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .background(AppColors.aiTeal)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(ScaleButtonStyle())
+
+                    if let onSkip {
+                        Button(action: onSkip) {
+                            Text("Not Now")
+                                .font(.poppins(.medium, size: 14))
+                                .foregroundColor(Color(hex: "64748B"))
+                                .padding(8)
+                        }
+                        .padding(.top, 6)
+                    }
+
+                    Spacer().frame(height: 24)
                 }
+                .padding(.horizontal, 24)
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 40)
-        }
-        .onAppear {
-            withAnimation(.easeOut(duration: 0.6)) {
-                scale = 1.0
-                opacity = 1.0
-            }
-            isAnimating = true
         }
         .trackScreen("ForceUpdate")
     }
-    
-    // MARK: - Update Icon
-    
-    private var updateIcon: some View {
-        ZStack {
-            // Glow effect
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: isForced ? [
-                            Color(hex: "FF512F").opacity(0.3),
-                            Color.clear
-                        ] : [
-                            AppColors.aiTeal.opacity(0.3),
-                            Color.clear
-                        ],
-                        center: .center,
-                        startRadius: 40,
-                        endRadius: 120
-                    )
-                )
-                .frame(width: 200, height: 200)
-                .scaleEffect(isAnimating ? 1.2 : 1.0)
-                .animation(
-                    .easeInOut(duration: 1.5).repeatForever(autoreverses: true),
-                    value: isAnimating
-                )
-            
-            // Icon background
-            RoundedRectangle(cornerRadius: 40)
-                .fill(Material.ultraThinMaterial)
-                .frame(width: 120, height: 120)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 40)
-                        .stroke(
-                            colorScheme == .dark
-                                ? Color.white.opacity(0.2)
-                                : Color.black.opacity(0.1),
-                            lineWidth: 0.5
-                        )
-                )
-            
-            // Icon
-            Image(systemName: isForced ? "exclamationmark.arrow.circlepath" : "arrow.down.app.fill")
-                .font(.poppins(.regular, size: 50))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: isForced
-                            ? [Color(hex: "FF512F"), Color(hex: "DD2476")]
-                            : [AppColors.aiTeal, Color(hex: "1BFFFF")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        }
-        .scaleEffect(scale)
-        .opacity(opacity)
-    }
-    
-    // MARK: - Title Section
-    
-    private var titleSection: some View {
-        VStack(spacing: 12) {
-            Text(appVersionService.versionInfo?.updateTitle ?? (isForced ? "Update Required" : "Update Available"))
-                .font(.poppins(.bold, size: 28))
-                .foregroundColor(colorScheme == .dark ? .primary : AppColors.aiTeal)
-                .multilineTextAlignment(.center)
+}
 
-            Text(appVersionService.versionInfo?.updateMessage ?? defaultMessage)
-                .font(.poppins(.regular, size: 17))
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(4)
-        }
-        .opacity(opacity)
+// MARK: - Optional Update Card (sheet)
+
+struct OptionalUpdateCard: View {
+
+    @ObservedObject var appVersionService: AppVersionService
+    let onDismiss: () -> Void
+
+    private var resolvedTitle: String {
+        appVersionService.versionInfo?.updateTitle ?? "Update Available"
     }
-    
-    private var defaultMessage: String {
-        if isForced {
-            return "A critical update is required to continue using Swastricare. Please update to the latest version for the best experience."
+
+    private var resolvedMessage: String {
+        let fallback: String
+        if let v = appVersionService.versionInfo?.latestVersion {
+            fallback = "Version \(v) is available with improvements and bug fixes."
         } else {
-            return "A new version of Swastricare is available with improvements and bug fixes."
+            fallback = "A new version is available with improvements and bug fixes."
         }
+        return appVersionService.versionInfo?.updateMessage ?? fallback
     }
-    
-    // MARK: - Version Info Section
-    
-    private var versionInfoSection: some View {
-        HStack(spacing: 24) {
-            versionBadge(
-                label: "Current",
-                version: appVersionService.currentVersion,
-                isHighlighted: false
-            )
-            
-            Image(systemName: "arrow.right")
-                .font(.poppins(.bold, size: 22))
-                .foregroundColor(.secondary)
-            
-            versionBadge(
-                label: "Latest",
-                version: latestVersion,
-                isHighlighted: true
-            )
-        }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 24)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Material.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(
-                            colorScheme == .dark
-                                ? Color.white.opacity(0.1)
-                                : Color.black.opacity(0.05),
-                            lineWidth: 0.5
-                        )
-                )
-        )
-        .opacity(opacity)
-    }
-    
-    private func versionBadge(label: String, version: String, isHighlighted: Bool) -> some View {
-        VStack(spacing: 4) {
-            Text(label)
-                .font(.poppins(.regular, size: 12))
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
 
-            Text("v\(version)")
-                .font(.poppins(.semiBold, size: 17))
-                .foregroundColor(isHighlighted ? Color(hex: "11998e") : .primary)
-        }
-    }
-    
-    // MARK: - Action Buttons
-    
-    private var actionButtons: some View {
-        Button(action: {
-            appVersionService.openAppStore()
-        }) {
-            HStack(spacing: 8) {
-                Image(systemName: "arrow.down.app.fill")
-                Text("Update Now")
-                    .font(.poppins(.semiBold, size: 17))
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.white.ignoresSafeArea()
+
+            Image("update-bottom")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .ignoresSafeArea(edges: .bottom)
+
+            VStack(spacing: 0) {
+                Image("update-hero")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 180)
+
+                Spacer().frame(height: 4)
+
+                Text(resolvedTitle)
+                    .font(.poppins(.bold, size: 22))
+                    .foregroundColor(Color(hex: "0F172A"))
+                    .multilineTextAlignment(.center)
+
+                Spacer().frame(height: 8)
+
+                Text(resolvedMessage)
+                    .font(.poppins(.regular, size: 14))
+                    .foregroundColor(Color(hex: "64748B"))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+                    .padding(.horizontal, 8)
+
+                Spacer().frame(height: 24)
+
+                Button(action: {
+                    appVersionService.openAppStore()
+                    onDismiss()
+                }) {
+                    Text("Update Now")
+                        .font(.poppins(.semiBold, size: 16))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(AppColors.aiTeal)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(ScaleButtonStyle())
+
+                Spacer().frame(height: 6)
+
+                Button(action: onDismiss) {
+                    Text("Maybe Later")
+                        .font(.poppins(.medium, size: 14))
+                        .foregroundColor(Color(hex: "64748B"))
+                        .padding(10)
+                }
+
+                Spacer().frame(height: 16)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(
-                LinearGradient(
-                    colors: isForced
-                        ? [Color(hex: "FF512F"), Color(hex: "DD2476")]
-                        : [AppColors.aiTeal, Color(hex: "1BFFFF")],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            .foregroundColor(.white)
-            .cornerRadius(16)
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
         }
-        .opacity(opacity)
+        .trackScreen("OptionalUpdate")
     }
-    
-    private func skipButton(action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text("Maybe Later")
-                .font(.poppins(.regular, size: 15))
-                .foregroundColor(.secondary)
+}
+
+// MARK: - Benefit Row
+
+private struct UpdateBenefitRow: View {
+    let systemImage: String
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(AppColors.aiTeal.opacity(0.12))
+                    .frame(width: 44, height: 44)
+                Image(systemName: systemImage)
+                    .font(.system(size: 20, weight: .regular))
+                    .foregroundColor(AppColors.aiTeal)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.poppins(.semiBold, size: 15))
+                    .foregroundColor(Color(hex: "0F172A"))
+                Text(subtitle)
+                    .font(.poppins(.regular, size: 13))
+                    .foregroundColor(Color(hex: "64748B"))
+            }
+
+            Spacer(minLength: 0)
         }
-        .padding(.top, 8)
-        .opacity(opacity)
     }
 }
 
@@ -256,16 +247,18 @@ struct ForceUpdateView: View {
 struct OptionalUpdateAlertModifier: ViewModifier {
     @ObservedObject var appVersionService: AppVersionService
     @Binding var isPresented: Bool
-    
+
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: $isPresented) {
-                ForceUpdateView(
+                OptionalUpdateCard(
                     appVersionService: appVersionService,
-                    onSkip: { isPresented = false }
+                    onDismiss: { isPresented = false }
                 )
-                .presentationDetents([.large])
+                .presentationDetents([.height(560)])
                 .presentationDragIndicator(.visible)
+                .presentationCornerRadius(28)
+                .presentationBackground(Color.white)
             }
     }
 }
@@ -285,11 +278,12 @@ extension View {
 // MARK: - Preview
 
 #Preview("Force Update") {
-    let service = AppVersionService.shared
-    ForceUpdateView(appVersionService: service, onSkip: nil)
+    ForceUpdateView(appVersionService: AppVersionService.shared, onSkip: nil)
 }
 
-#Preview("Optional Update") {
-    let service = AppVersionService.shared
-    ForceUpdateView(appVersionService: service, onSkip: { print("Skipped") })
+#Preview("Optional Update Card") {
+    OptionalUpdateCard(
+        appVersionService: AppVersionService.shared,
+        onDismiss: {}
+    )
 }
