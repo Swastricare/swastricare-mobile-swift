@@ -10,6 +10,7 @@ import UserNotifications
 
 struct MedicationsView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.responsiveScale) private var scale
     @ObservedObject var viewModel: MedicationViewModel
 
     @State private var showAddMedication = false
@@ -36,17 +37,17 @@ struct MedicationsView: View {
                     VStack(spacing: 0) {
                         heroSection
                         statsRow
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, AppDimensions.screenPadding(scale))
                             .padding(.vertical, 14)
                         todayScheduleSection
                         Divider()
-                            .padding(.horizontal, 20)
+                            .padding(.horizontal, AppDimensions.screenPadding(scale) + 2)
                             .padding(.vertical, 12)
                         adherenceAndMedsSection
-                            .padding(.horizontal, 20)
+                            .padding(.horizontal, AppDimensions.screenPadding(scale) + 2)
                         Spacer(minLength: 16)
                         remindersCard
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, AppDimensions.screenPadding(scale))
                         Spacer(minLength: 32)
                     }
                 }
@@ -123,10 +124,10 @@ struct MedicationsView: View {
                     }
                     VStack(alignment: .leading, spacing: 0) {
                         Text("Medication")
-                            .font(.poppins(.bold, size: 22))
+                            .font(.poppins(.bold, size: 22 * scale.value))
                             .foregroundColor(Color(hex: "1A1A2E"))
                         Text("Stay on track, stay healthy 🌿")
-                            .font(.poppins(.regular, size: 13))
+                            .font(.poppins(.regular, size: 13 * scale.value))
                             .foregroundColor(Color(hex: "666666"))
                     }
                     Spacer()
@@ -151,7 +152,7 @@ struct MedicationsView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, max(AppDimensions.screenPadding(scale) - 8, 8))
                 .padding(.top, 8)
                 .safeAreaInset(edge: .top) { Color.clear.frame(height: 0) }
             }
@@ -186,7 +187,7 @@ struct MedicationsView: View {
                         .foregroundColor(aiTeal)
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, AppDimensions.screenPadding(scale) + 2)
             .padding(.vertical, 4)
 
             if viewModel.todaysMedications.flatMap(\.todayDoses).isEmpty {
@@ -199,7 +200,7 @@ struct MedicationsView: View {
                         .foregroundColor(Color(hex: "888888"))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, AppDimensions.screenPadding(scale) + 2)
                 .padding(.vertical, 20)
             } else {
                 VStack(spacing: 0) {
@@ -214,7 +215,7 @@ struct MedicationsView: View {
                             onSkip: { skipDialogDose = entry.dose },
                             onTap: { selectedMedication = entry.mwa }
                         )
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, AppDimensions.screenPadding(scale) + 2)
                     }
                 }
             }
@@ -320,7 +321,7 @@ struct MedicationsView: View {
                         .frame(maxWidth: .infinity)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, AppDimensions.screenPadding(scale))
 
             // Schedule rows
             VStack(spacing: 0) {
@@ -334,7 +335,7 @@ struct MedicationsView: View {
                         Spacer()
                         SkeletonShape(width: 70, height: 30, cornerRadius: 15)
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, AppDimensions.screenPadding(scale) + 2)
                     .padding(.vertical, 10)
                 }
             }

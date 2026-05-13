@@ -51,11 +51,16 @@ struct ContentView: View {
         // AITeal #22C5A6 for selected tab
         let teal = UIColor(red: 0x22 / 255.0, green: 0xC5 / 255.0, blue: 0xA6 / 255.0, alpha: 1.0)
         let unselected = UIColor.systemGray
+        // Slightly larger tab title font on Plus/Max-class devices.
+        let screenWidth = UIScreen.main.bounds.width
+        let titleScale: CGFloat = screenWidth >= 429 ? 1.12 : (screenWidth >= 391 ? 1.06 : 1.0)
+        let titleFont = UIFont.systemFont(ofSize: 10 * titleScale, weight: .medium)
+
         for itemAppearance in [appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance, appearance.compactInlineLayoutAppearance] {
             itemAppearance.selected.iconColor = teal
-            itemAppearance.selected.titleTextAttributes = [.foregroundColor: teal]
+            itemAppearance.selected.titleTextAttributes = [.foregroundColor: teal, .font: titleFont]
             itemAppearance.normal.iconColor = unselected
-            itemAppearance.normal.titleTextAttributes = [.foregroundColor: unselected]
+            itemAppearance.normal.titleTextAttributes = [.foregroundColor: unselected, .font: titleFont]
         }
 
         UITabBar.appearance().standardAppearance = appearance
@@ -165,6 +170,7 @@ struct ContentView: View {
                 )
             }
         }
+        .responsive()
         } // VStack
     }
 

@@ -12,7 +12,10 @@ import Combine
 import PhotosUI
 
 struct AIView: View {
-    
+
+    // MARK: - Environment
+    @Environment(\.responsiveScale) private var scale
+
     // MARK: - ViewModel
 
     @StateObject private var viewModel = DependencyContainer.shared.aiViewModel
@@ -432,10 +435,15 @@ struct AIView: View {
                     ScrollView {
                         VStack(spacing: 16) {
                             if viewModel.messages.isEmpty {
-                                // Intro / Landing UI
-                                introView
-                                    .padding(.top, 60)
-                                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                                // Intro / Landing UI — vertically centered in the scroll container
+                                VStack(spacing: 0) {
+                                    Spacer(minLength: 0)
+                                    introView
+                                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                                    Spacer(minLength: 0)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .containerRelativeFrame(.vertical) { length, _ in length }
                             } else {
                                 ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { index, message in
                                     ChatBubble(
@@ -710,19 +718,19 @@ struct AIView: View {
             Image.androidIcon("ai illustration")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 180, height: 180)
+                .frame(width: 180 * scale.value, height: 180 * scale.value)
                 .scaleEffect(showEmptyState ? 1 : 0.7)
                 .opacity(showEmptyState ? 1 : 0)
                 .animation(.spring(response: 0.7, dampingFraction: 0.6).delay(0.05), value: showEmptyState)
 
             VStack(spacing: 10) {
                 Text("Hi! I'm Swastricare AI")
-                    .font(.poppins(.bold, size: 22))
+                    .font(.poppins(.bold, size: 22 * scale.value))
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
 
                 Text("Ask me anything about your health, reports, medications, symptoms and more.")
-                    .font(.poppins(.regular, size: 13))
+                    .font(.poppins(.regular, size: 13 * scale.value))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(3)
@@ -737,7 +745,7 @@ struct AIView: View {
                 viewModel.inputText = prompt
                 isInputFocused = true
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, AppDimensions.screenPadding(scale))
 
             // MARK: - Hidden for Android-parity port (kept as reference)
             /*
@@ -873,10 +881,10 @@ struct AIView: View {
                     )
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, AppDimensions.screenPadding(scale))
         }
     }
-    
+
     // MARK: - Image Source Helper
     
     private func openImageSource() {
@@ -1047,7 +1055,7 @@ struct AIView: View {
                 }
                 .disabled(!viewModel.canSend || !networkMonitor.isConnected)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, AppDimensions.screenPadding(scale) - 4)
             .padding(.vertical, 8)
         }
         .background(Color.white)

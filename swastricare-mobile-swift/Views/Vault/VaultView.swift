@@ -14,7 +14,10 @@ import PhotosUI
 // MARK: - Main Vault View
 
 struct VaultView: View {
-    
+
+    // MARK: - Environment
+    @Environment(\.responsiveScale) private var scale
+
     // MARK: - ViewModel
     // Use ObservedObject since ViewModel is shared/owned by DependencyContainer
     @ObservedObject private var viewModel = DependencyContainer.shared.vaultViewModel
@@ -122,7 +125,7 @@ struct VaultView: View {
         VStack(spacing: 0) {
             ZStack {
                 Text("Medical Vault")
-                    .font(.poppins(.bold, size: 22))
+                    .font(.poppins(.bold, size: 22 * scale.value))
                     .foregroundColor(Color(hex: "0F172A"))
                     .frame(maxWidth: .infinity, alignment: .center)
 
@@ -151,7 +154,7 @@ struct VaultView: View {
                     }
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, AppDimensions.screenPadding(scale))
             .padding(.top, 8)
             .padding(.bottom, 4)
 
@@ -192,10 +195,10 @@ struct VaultView: View {
             .disabled(viewModel.selectedDocuments.isEmpty)
             .opacity(viewModel.selectedDocuments.isEmpty ? 0.5 : 1)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
         .padding(.vertical, 12)
         .glass(cornerRadius: 16)
-        .padding(.horizontal, 20)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
     }
     
     // MARK: - Content Area
@@ -213,6 +216,9 @@ struct VaultView: View {
         }
     }
 
+    /// Max content width so cards don't stretch awkwardly on Pro Max / iPad-class widths.
+    private let contentMaxWidth: CGFloat = 560
+
     // MARK: - Documents Content
     private var documentsContent: some View {
         ScrollView {
@@ -222,7 +228,7 @@ struct VaultView: View {
                     totalBytes: 1_073_741_824,
                     onAddFiles: { showAddOptions = true }
                 )
-                .padding(.horizontal, 16)
+                .padding(.horizontal, AppDimensions.screenPadding(scale))
                 .padding(.top, 4)
 
                 CategoryTilesRow(
@@ -236,7 +242,7 @@ struct VaultView: View {
                     onSelectPrescriptions: { viewModel.setCategory(.prescriptions) },
                     onSelectScans: { viewModel.setCategory(.imaging) }
                 )
-                .padding(.horizontal, 16)
+                .padding(.horizontal, AppDimensions.screenPadding(scale))
                 .padding(.top, 12)
 
                 HStack(alignment: .center) {
@@ -264,7 +270,7 @@ struct VaultView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, AppDimensions.screenPadding(scale))
                 .padding(.top, 18)
                 .padding(.bottom, 6)
 
@@ -277,14 +283,16 @@ struct VaultView: View {
                         .font(.poppins(.regular, size: 12))
                         .foregroundColor(Color(hex: "0F172A").opacity(0.5))
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, AppDimensions.screenPadding(scale))
                         .padding(.bottom, 6)
 
                     documentListView
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, AppDimensions.screenPadding(scale))
                 }
             }
             .padding(.bottom, 24)
+            .frame(maxWidth: contentMaxWidth)
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -357,21 +365,27 @@ struct VaultView: View {
         ]
 
         return ScrollView {
-            LazyVGrid(columns: columns, spacing: 16) {
-                ForEach(0..<4, id: \.self) { _ in
-                    VStack(spacing: 12) {
-                        SkeletonShape(height: 56, cornerRadius: 12)
-                        SkeletonShape(width: 80, height: 14)
-                        SkeletonShape(width: 50, height: 12)
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                LazyVGrid(columns: columns, spacing: 16) {
+                    ForEach(0..<4, id: \.self) { _ in
+                        VStack(spacing: 12) {
+                            SkeletonShape(height: 56, cornerRadius: 12)
+                            SkeletonShape(width: 80, height: 14)
+                            SkeletonShape(width: 50, height: 12)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
+                        .padding(.horizontal, 12)
+                        .glass(cornerRadius: 20)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                    .padding(.horizontal, 12)
-                    .glass(cornerRadius: 20)
                 }
+                .padding(.horizontal, AppDimensions.screenPadding(scale))
+                .frame(maxWidth: contentMaxWidth)
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
+            .frame(maxWidth: .infinity)
+            .containerRelativeFrame(.vertical) { length, _ in length }
         }
     }
     
@@ -380,7 +394,7 @@ struct VaultView: View {
         let accent = AppColors.aiTeal
         return ScrollView {
             VStack(spacing: 0) {
-                Spacer(minLength: 24)
+                Spacer(minLength: 0)
 
                 ZStack {
                     Circle()
@@ -395,7 +409,7 @@ struct VaultView: View {
                 Spacer().frame(height: 20)
 
                 Text("You're offline")
-                    .font(.poppins(.bold, size: 22))
+                    .font(.poppins(.bold, size: 22 * scale.value))
                     .foregroundColor(Color(hex: "0F172A"))
 
                 Spacer().frame(height: 6)
@@ -427,9 +441,12 @@ struct VaultView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 24)
+
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: contentMaxWidth)
             .frame(maxWidth: .infinity)
-            .padding(.top, 40)
+            .containerRelativeFrame(.vertical) { length, _ in length }
         }
     }
 
@@ -438,15 +455,30 @@ struct VaultView: View {
         let accent = AppColors.aiTeal
         return ScrollView {
             VStack(spacing: 0) {
+                Spacer(minLength: 0)
+
                 Image.androidIcon("vault icon")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 180, height: 180)
+                    .frame(width: 180 * scale.value, height: 180 * scale.value)
+                    .blendMode(.multiply)
+                    .mask(
+                        RadialGradient(
+                            gradient: Gradient(stops: [
+                                .init(color: .black, location: 0.0),
+                                .init(color: .black.opacity(0.95), location: 0.55),
+                                .init(color: .clear, location: 1.0)
+                            ]),
+                            center: .center,
+                            startRadius: 10,
+                            endRadius: 110 * scale.value
+                        )
+                    )
 
                 Spacer().frame(height: 8)
 
                 Text("Your vault is empty")
-                    .font(.poppins(.bold, size: 22))
+                    .font(.poppins(.bold, size: 22 * scale.value))
                     .foregroundColor(Color(hex: "0F172A"))
 
                 Spacer().frame(height: 6)
@@ -512,10 +544,11 @@ struct VaultView: View {
                 .buttonStyle(.plain)
                 .padding(.horizontal, 24)
 
-                Spacer().frame(height: 24)
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: contentMaxWidth)
             .frame(maxWidth: .infinity)
-            .padding(.top, 12)
+            .containerRelativeFrame(.vertical) { length, _ in length }
         }
     }
     

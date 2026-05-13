@@ -193,6 +193,116 @@ struct AppDimensions {
     static let statCardHeight: CGFloat = 100
 }
 
+// MARK: - Responsive Scale
+
+/// Width-bucketed responsive scale factor. Read once at the root and propagated via Environment.
+/// Buckets are by physical width, not device model — future-proof.
+enum ResponsiveScale: CGFloat {
+    case compact = 1.0   // width ≤ 390  (15 Pro, mini, SE)
+    case regular = 1.06  // 391–428      (15 Pro Max, 16 Pro)
+    case large   = 1.12  // ≥ 429        (16 Pro Max)
+
+    static func from(width: CGFloat) -> ResponsiveScale {
+        if width >= 429 { return .large }
+        if width >= 391 { return .regular }
+        return .compact
+    }
+
+    var value: CGFloat { rawValue }
+}
+
+private struct ResponsiveScaleKey: EnvironmentKey {
+    static let defaultValue: ResponsiveScale = .compact
+}
+
+extension EnvironmentValues {
+    var responsiveScale: ResponsiveScale {
+        get { self[ResponsiveScaleKey.self] }
+        set { self[ResponsiveScaleKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Installs a `ResponsiveScale` derived from the current screen width into the environment.
+    /// Apply once at the tab host root. Uses `UIScreen.main.bounds.width` (not GeometryReader)
+    /// so it doesn't disturb the host's layout.
+    func responsive() -> some View {
+        let width = UIScreen.main.bounds.width
+        return environment(\.responsiveScale, ResponsiveScale.from(width: width))
+    }
+}
+
+// MARK: - Responsive Typography
+
+/// Scaled fonts. Pass the current `ResponsiveScale` (from `@Environment(\.responsiveScale)`).
+enum AppFont {
+    /// Hero numeric metrics (e.g. step count, calorie totals). Base 34pt.
+    static func metric(_ scale: ResponsiveScale) -> Font {
+        .system(size: 34 * scale.value, weight: .bold, design: .rounded)
+    }
+    /// Section / screen title. Base 22pt.
+    static func title(_ scale: ResponsiveScale) -> Font {
+        .system(size: 22 * scale.value, weight: .bold)
+    }
+    /// Card title / row primary text. Base 17pt.
+    static func headline(_ scale: ResponsiveScale) -> Font {
+        .system(size: 17 * scale.value, weight: .semibold)
+    }
+    /// Body copy. Base 15pt.
+    static func body(_ scale: ResponsiveScale) -> Font {
+        .system(size: 15 * scale.value, weight: .regular)
+    }
+    /// Secondary / caption text. Base 13pt.
+    static func caption(_ scale: ResponsiveScale) -> Font {
+        .system(size: 13 * scale.value, weight: .medium)
+    }
+}
+
+// MARK: - Responsive Dimensions
+
+extension AppDimensions {
+    /// Horizontal screen padding. 16 / 18 / 20 by bucket.
+    static func screenPadding(_ scale: ResponsiveScale) -> CGFloat {
+        switch scale {
+        case .compact: return 16
+        case .regular: return 18
+        case .large:   return 20
+        }
+    }
+    /// Internal card padding. Base 16pt.
+    static func cardPadding(_ scale: ResponsiveScale) -> CGFloat {
+        16 * scale.value
+    }
+    /// Vertical spacing between sections.
+    static func sectionSpacing(_ scale: ResponsiveScale) -> CGFloat {
+        switch scale {
+        case .compact: return 16
+        case .regular: return 18
+        case .large:   return 22
+        }
+    }
+    /// Quick action button height. Base 100pt.
+    static func quickActionHeight(_ scale: ResponsiveScale) -> CGFloat {
+        100 * scale.value
+    }
+    /// Standard icon point size. Pass the base size (e.g. 20, 24).
+    static func iconSize(_ base: CGFloat, _ scale: ResponsiveScale) -> CGFloat {
+        base * scale.value
+    }
+}
+
+extension View {
+    /// Consistent thin divider in the app's neutral tone.
+    func appDivider() -> some View {
+        self.overlay(
+            Rectangle()
+                .fill(Color.primary.opacity(0.08))
+                .frame(height: 0.5),
+            alignment: .bottom
+        )
+    }
+}
+
 // MARK: - Liquid Glass View Modifiers
 
 struct GlassModifier: ViewModifier {

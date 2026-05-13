@@ -106,6 +106,7 @@ struct DrinkGradient {
 struct HydrationView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.responsiveScale) private var scale
     @ObservedObject var viewModel: HydrationViewModel
 
     @State private var heroPage = 0
@@ -117,14 +118,25 @@ struct HydrationView: View {
 
     @State private var sheetOffset: CGFloat = 0
     @State private var sheetExpanded = false
-    private let sheetPeekHeight: CGFloat = 260
     private let sheetTopPadding: CGFloat = 120
+
+    /// Hero content height (topBar + heroPager + dots + calendar + chips + safe-area).
+    /// Used to keep the bottom sheet just below the chips so the gap stays constant
+    /// across device sizes, instead of growing on tall screens.
+    private var heroContentHeight: CGFloat {
+        // topBar(~52) + heroPager(240) + dots(~16) + calendar(~64) + chips(~58) + spacings(12*4)
+        // Scale with responsiveScale since chip/calendar fonts may grow.
+        return (52 + 240 + 16 + 64 + 58 + 48) * (0.96 + 0.04 * scale.value)
+    }
 
     var body: some View {
         GeometryReader { geo in
             let screenHeight = geo.size.height
             let maxSheetHeight = screenHeight - sheetTopPadding
-            let collapsedOffset = screenHeight - sheetPeekHeight
+            // Sheet peek = whatever's left below the hero content, with a small breathing gap.
+            // Clamp to a sensible minimum so it doesn't get tiny on short screens.
+            let dynamicPeekHeight = max(260, screenHeight - heroContentHeight - 24)
+            let collapsedOffset = screenHeight - dynamicPeekHeight
             let expandedOffset = sheetTopPadding
 
             ZStack(alignment: .top) {
@@ -231,7 +243,7 @@ struct HydrationView: View {
             Spacer()
 
             Text("Hydration")
-                .font(.poppins(.bold, size: 20))
+                .font(.poppins(.bold, size: 20 * scale.value))
                 .foregroundColor(.white)
 
             Spacer()
@@ -255,7 +267,7 @@ struct HydrationView: View {
                     .clipShape(Circle())
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
         .padding(.top, 8)
         .padding(.bottom, 4)
     }
@@ -334,7 +346,7 @@ struct HydrationView: View {
                 )
             }
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, AppDimensions.screenPadding(scale) + 4)
     }
 
     private func insightTile(icon: String, value: String, label: String, color: Color) -> some View {
@@ -374,7 +386,7 @@ struct HydrationView: View {
                     )
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, AppDimensions.screenPadding(scale))
         }
     }
 
@@ -413,7 +425,7 @@ struct HydrationView: View {
                 .stroke(Color(hex: "FF9500").opacity(0.3), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
     }
 
     // MARK: - Entries Sheet
@@ -449,11 +461,11 @@ struct HydrationView: View {
                         .clipShape(Circle())
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, AppDimensions.screenPadding(scale) + 2)
             .padding(.bottom, 12)
 
             Divider()
-                .padding(.horizontal, 20)
+                .padding(.horizontal, AppDimensions.screenPadding(scale) + 2)
 
             // Scrollable entries content
             ScrollView(.vertical, showsIndicators: false) {
@@ -470,7 +482,7 @@ struct HydrationView: View {
                                 }
                             }
                         }
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, AppDimensions.screenPadding(scale) + 2)
                         .padding(.top, 12)
                     }
 
@@ -498,7 +510,7 @@ struct HydrationView: View {
                                 .stroke(gradient.accentColor.opacity(0.15), lineWidth: 0.5)
                         )
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, AppDimensions.screenPadding(scale) + 2)
                     .padding(.top, 16)
                     .padding(.bottom, 20)
                 }

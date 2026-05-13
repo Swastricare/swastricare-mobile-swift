@@ -23,6 +23,10 @@ private let activeAccent = Color(hex: "8B5CF6")
 
 struct HomeView: View {
 
+    // MARK: - Environment
+
+    @Environment(\.responsiveScale) private var scale
+
     // MARK: - ViewModels
 
     @StateObject private var viewModel = DependencyContainer.shared.homeViewModel
@@ -118,12 +122,12 @@ struct HomeView: View {
                     activeMinutes: viewModel.exerciseMinutes,
                     activeMinutesGoal: activeMinutesGoal
                 )
-                .padding(.horizontal, 16)
+                .padding(.horizontal, AppDimensions.screenPadding(scale))
                 .opacity(hasAppeared ? 1 : 0)
                 .offset(y: hasAppeared ? 0 : 20)
                 .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.1), value: hasAppeared)
 
-                Spacer().frame(height: 18)
+                Spacer().frame(height: AppDimensions.sectionSpacing(scale))
 
                 // 3. Quick Actions
                 HomeSectionHeader(title: "Quick Actions")
@@ -134,12 +138,12 @@ struct HomeView: View {
                     onCycle: { showMenstrualCycle = true },
                     onDiet: { showDiet = true }
                 )
-                .padding(.horizontal, 16)
+                .padding(.horizontal, AppDimensions.screenPadding(scale))
                 .opacity(hasAppeared ? 1 : 0)
                 .offset(y: hasAppeared ? 0 : 20)
                 .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.18), value: hasAppeared)
 
-                Spacer().frame(height: 18)
+                Spacer().frame(height: AppDimensions.sectionSpacing(scale))
 
                 // 4. Health Vitals
                 HomeSectionHeader(
@@ -156,16 +160,16 @@ struct HomeView: View {
                     onSleep: { showAnalytics() },
                     onBodyScan: { showARBodyScan = true }
                 )
-                .padding(.horizontal, 16)
+                .padding(.horizontal, AppDimensions.screenPadding(scale))
                 .opacity(hasAppeared ? 1 : 0)
                 .offset(y: hasAppeared ? 0 : 20)
                 .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.25), value: hasAppeared)
 
-                Spacer().frame(height: 18)
+                Spacer().frame(height: AppDimensions.sectionSpacing(scale))
 
                 // 5. Swastri AI Banner
                 SwastriAICard(onChat: { navigateToAI() })
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, AppDimensions.screenPadding(scale))
                     .opacity(hasAppeared ? 1 : 0)
                     .offset(y: hasAppeared ? 0 : 20)
                     .animation(.spring(response: 0.55, dampingFraction: 0.8).delay(0.32), value: hasAppeared)
@@ -283,6 +287,7 @@ struct HomeView: View {
 // MARK: - Header Section
 
 private struct HomeHeaderSection: View {
+    @Environment(\.responsiveScale) private var scale
     let firstName: String
     let greeting: String
     let avatarURL: URL?
@@ -339,7 +344,7 @@ private struct HomeHeaderSection: View {
             }
             .buttonStyle(ScaleButtonStyle())
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
         .padding(.vertical, 6)
     }
 }
@@ -395,6 +400,7 @@ private struct AvatarBubble: View {
 // MARK: - Daily Activity Card
 
 private struct DailyActivityCard: View {
+    @Environment(\.responsiveScale) private var scale
     let steps: Int
     let stepGoal: Int
     let calories: Int
@@ -405,10 +411,11 @@ private struct DailyActivityCard: View {
     let activeMinutesGoal: Int
 
     var body: some View {
-        let ringSize = min(max((UIScreen.main.bounds.width - 64) * 0.34, 110), 150)
+        let maxRing: CGFloat = 150 * scale.value
+        let ringSize = min(max((UIScreen.main.bounds.width - 64) * 0.34, 110), maxRing)
         return VStack(alignment: .leading, spacing: 10) {
             Text("Daily Activity")
-                .font(.poppins(.semiBold, size: 13))
+                .font(.poppins(.semiBold, size: 13 * scale.value))
                 .foregroundColor(darkText)
 
             HStack(alignment: .center, spacing: 14) {
@@ -458,13 +465,13 @@ private struct DailyActivityCard: View {
             // Goal label beneath ring
             HStack {
                 Text("Goal \(formatSteps(stepGoal))")
-                    .font(.poppins(.semiBold, size: 11))
+                    .font(.poppins(.semiBold, size: 11 * scale.value))
                     .foregroundColor(AppColors.aiTeal)
                     .frame(width: ringSize, alignment: .center)
                 Spacer()
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.cardPadding(scale))
         .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -485,6 +492,7 @@ private struct DailyActivityCard: View {
 // MARK: - Steps Ring
 
 private struct StepsRingView: View {
+    @Environment(\.responsiveScale) private var scale
     let steps: Int
     let goal: Int
     let size: CGFloat
@@ -521,12 +529,12 @@ private struct StepsRingView: View {
                 Image.androidIcon("steps shoe icon")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 22, height: 22)
+                    .frame(width: 22 * scale.value, height: 22 * scale.value)
                 Text(formatSteps(steps))
-                    .font(.poppins(.bold, size: 20))
+                    .font(.poppins(.bold, size: 20 * scale.value))
                     .foregroundColor(darkText)
                 Text("Steps")
-                    .font(.poppins(.regular, size: 11))
+                    .font(.poppins(.regular, size: 11 * scale.value))
                     .foregroundColor(mutedText)
             }
         }
@@ -548,6 +556,7 @@ private struct StepsRingView: View {
 // MARK: - Mini Stat Row (Calories / Distance / Active)
 
 private struct MiniStatRow: View {
+    @Environment(\.responsiveScale) private var scale
     let icon: String
     let iconColor: Color
     let label: String
@@ -561,23 +570,23 @@ private struct MiniStatRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 18))
+                .font(.system(size: 18 * scale.value))
                 .foregroundColor(iconColor)
-                .frame(width: 26, height: 26)
+                .frame(width: 26 * scale.value, height: 26 * scale.value)
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
                     Text(label)
-                        .font(.poppins(.semiBold, size: 11))
+                        .font(.poppins(.semiBold, size: 11 * scale.value))
                         .foregroundColor(darkText)
                         .lineLimit(1)
                     Spacer()
                     HStack(spacing: 0) {
                         Text(value)
-                            .font(.poppins(.bold, size: 10))
+                            .font(.poppins(.bold, size: 10 * scale.value))
                             .foregroundColor(darkText)
                         Text(" / \(goalText)")
-                            .font(.poppins(.regular, size: 10))
+                            .font(.poppins(.regular, size: 10 * scale.value))
                             .foregroundColor(mutedText)
                     }
                     .lineLimit(1)
@@ -612,6 +621,7 @@ private struct MiniStatRow: View {
 // MARK: - Section Header
 
 private struct HomeSectionHeader: View {
+    @Environment(\.responsiveScale) private var scale
     let title: String
     var trailingLabel: String? = nil
     var onTrailing: (() -> Void)? = nil
@@ -619,18 +629,18 @@ private struct HomeSectionHeader: View {
     var body: some View {
         HStack {
             Text(title)
-                .font(.poppins(.semiBold, size: 14))
+                .font(.poppins(.semiBold, size: 14 * scale.value))
                 .foregroundColor(darkText)
             Spacer()
             if let label = trailingLabel {
                 Button(action: { onTrailing?() }) {
                     Text(label)
-                        .font(.poppins(.semiBold, size: 13))
+                        .font(.poppins(.semiBold, size: 13 * scale.value))
                         .foregroundColor(AppColors.aiTeal)
                 }
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
     }
 }
 
@@ -673,6 +683,7 @@ private struct QuickActionsRow: View {
 }
 
 private struct QuickActionTile: View {
+    @Environment(\.responsiveScale) private var scale
     let iconAsset: String
     let label: String
     let bgColor: Color
@@ -684,14 +695,14 @@ private struct QuickActionTile: View {
                 Image.androidIcon(iconAsset)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 55, height: 55)
+                    .frame(width: 55 * scale.value, height: 55 * scale.value)
                 Text(label)
-                    .font(.poppins(.semiBold, size: 12))
+                    .font(.poppins(.semiBold, size: 12 * scale.value))
                     .foregroundColor(darkText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
-            .padding(.vertical, 5)
+            .padding(.vertical, 5 * scale.value)
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -710,6 +721,7 @@ private struct QuickActionTile: View {
 // MARK: - Health Vitals Row
 
 private struct HealthVitalsRow: View {
+    @Environment(\.responsiveScale) private var scale
     let heartRate: Int
     let sleepHours: String
     let weight: String
@@ -779,11 +791,12 @@ private struct HealthVitalsRow: View {
     private var vitalDivider: some View {
         Rectangle()
             .fill(subtleBorder)
-            .frame(width: 1, height: 36)
+            .frame(width: 1, height: 36 * scale.value)
     }
 }
 
 private struct VitalCell: View {
+    @Environment(\.responsiveScale) private var scale
     let iconAsset: String
     let label: String
     let value: String
@@ -794,20 +807,20 @@ private struct VitalCell: View {
             Image.androidIcon(iconAsset)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 24, height: 24)
+                .frame(width: 24 * scale.value, height: 24 * scale.value)
             Text(label)
-                .font(.poppins(.regular, size: 11))
+                .font(.poppins(.regular, size: 11 * scale.value))
                 .foregroundColor(mutedText)
                 .multilineTextAlignment(.center)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             HStack(alignment: .bottom, spacing: 2) {
                 Text(value)
-                    .font(.poppins(.bold, size: 16))
+                    .font(.poppins(.bold, size: 16 * scale.value))
                     .foregroundColor(darkText)
                 if !unit.isEmpty {
                     Text(unit)
-                        .font(.poppins(.medium, size: 10))
+                        .font(.poppins(.medium, size: 10 * scale.value))
                         .foregroundColor(mutedText)
                         .padding(.bottom, 2)
                 }
@@ -820,6 +833,7 @@ private struct VitalCell: View {
 // MARK: - Swastri AI Card
 
 private struct SwastriAICard: View {
+    @Environment(\.responsiveScale) private var scale
     let onChat: () -> Void
 
     var body: some View {
@@ -827,14 +841,14 @@ private struct SwastriAICard: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Swastri AI")
-                        .font(.poppins(.bold, size: 11))
+                        .font(.poppins(.bold, size: 11 * scale.value))
                         .foregroundColor(AppColors.accentGreen)
                         .tracking(0.5)
                     Text("Your health companion")
-                        .font(.poppins(.bold, size: 16))
+                        .font(.poppins(.bold, size: 16 * scale.value))
                         .foregroundColor(.white)
                     Text("Ask anything, get personalized insights and guidance.")
-                        .font(.poppins(.regular, size: 11))
+                        .font(.poppins(.regular, size: 11 * scale.value))
                         .foregroundColor(.white.opacity(0.65))
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
@@ -847,7 +861,7 @@ private struct SwastriAICard: View {
                 Image.androidIcon("banner ai illustration")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 110, height: 110)
+                    .frame(width: 110 * scale.value, height: 110 * scale.value)
             }
             .padding(.leading, 18)
             .padding(.trailing, 8)

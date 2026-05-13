@@ -28,6 +28,9 @@ private let hikeTint      = Color(hex: "EDE9FE")
 
 struct RunActivityView: View {
 
+    // ── Environment ──────────────────────────────────────────────────────────
+    @Environment(\.responsiveScale) private var scale
+
     // ── ViewModel ────────────────────────────────────────────────────────────
     @StateObject private var viewModel = DependencyContainer.shared.runActivityViewModel
 
@@ -233,26 +236,26 @@ struct RunActivityView: View {
             HStack(alignment: .top, spacing: 0) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Activity")
-                        .font(.poppins(.bold, size: 32))
+                        .font(.poppins(.bold, size: 32 * scale.value))
                         .foregroundColor(textPrimary)
                     Text("Track your daily movement\nand progress")
-                        .font(.poppins(.regular, size: 13))
+                        .font(.poppins(.regular, size: 13 * scale.value))
                         .foregroundColor(textSecondary)
                         .lineSpacing(2)
                 }
                 Spacer()
                 Button { showFullCalendar = true } label: {
                     Image(systemName: "calendar")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 16 * scale.value, weight: .semibold))
                         .foregroundColor(AppColors.aiTeal)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 36 * scale.value, height: 36 * scale.value)
                         .background(Circle().fill(Color.white))
                         .shadow(color: .black.opacity(0.10), radius: 5, x: 0, y: 2)
                 }
                 .buttonStyle(.plain)
             }
             .frame(maxWidth: .infinity)
-            .padding(.leading, 16)
+            .padding(.leading, AppDimensions.screenPadding(scale))
             .padding(.trailing, 12)
             .padding(.top, 12)
         }
@@ -319,7 +322,7 @@ struct RunActivityView: View {
                 .disabled(isFuture)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
     }
 
     // MARK: - Move Goal Card (swipeable + nudge)
@@ -378,7 +381,7 @@ struct RunActivityView: View {
         .padding(16)
         .background(RoundedRectangle(cornerRadius: 20).fill(Color.white))
         .shadow(color: .black.opacity(0.10), radius: 10, x: 0, y: 4)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
         // Horizontal swipe to change date
         .gesture(
             DragGesture(minimumDistance: 24)
@@ -434,7 +437,7 @@ struct RunActivityView: View {
                 }
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
         .padding(.vertical, 14)
         .background(
             LinearGradient(
@@ -443,7 +446,7 @@ struct RunActivityView: View {
             )
         )
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
     }
 
     // MARK: - Highlights Header
@@ -453,7 +456,7 @@ struct RunActivityView: View {
             .font(.poppins(.bold, size: 16))
             .foregroundColor(textPrimary)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, AppDimensions.screenPadding(scale))
     }
 
     // MARK: - Highlights Grid
@@ -469,7 +472,7 @@ struct RunActivityView: View {
                 HighlightTile(icon: "mappin.and.ellipse", iconTint: Color(hex: "E11D74"), bgTint: tintPink,  value: String(format: "%.2f", displayDistanceKm), label: "km")
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
     }
 
     // MARK: - Start Workout CTA
@@ -510,7 +513,7 @@ struct RunActivityView: View {
             .background(RoundedRectangle(cornerRadius: 18).fill(AppColors.aiTeal))
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
     }
 
     // MARK: - Recent Activities Header
@@ -528,7 +531,7 @@ struct RunActivityView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
     }
 
     // MARK: - Recent Activities List
@@ -542,7 +545,7 @@ struct RunActivityView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
     }
 
     // MARK: - Empty State
@@ -560,7 +563,7 @@ struct RunActivityView: View {
         .frame(maxWidth: .infinity)
         .padding(20)
         .background(RoundedRectangle(cornerRadius: 18).fill(mintTint))
-        .padding(.horizontal, 16)
+        .padding(.horizontal, AppDimensions.screenPadding(scale))
     }
 }
 
@@ -676,6 +679,7 @@ private struct WorkoutOptionCard: View {
 // MARK: - Move Ring
 
 private struct MoveRingView: View {
+    @Environment(\.responsiveScale) private var scale
     let progress: Double
     let calories: Int
     let caloriesGoal: Int
@@ -700,13 +704,13 @@ private struct MoveRingView: View {
 
             VStack(spacing: 0) {
                 Text("\(calories)")
-                    .font(.poppins(.bold, size: 28))
+                    .font(.poppins(.bold, size: 28 * scale.value))
                     .foregroundColor(textPrimary)
                 Text("of \(caloriesGoal) kcal")
-                    .font(.poppins(.regular, size: 10))
+                    .font(.poppins(.regular, size: 10 * scale.value))
                     .foregroundColor(textSecondary)
                 Text("\(Int(progress * 100))%")
-                    .font(.poppins(.semiBold, size: 12))
+                    .font(.poppins(.semiBold, size: 12 * scale.value))
                     .foregroundColor(AppColors.aiTeal)
                     .padding(.top, 4)
             }
@@ -765,6 +769,7 @@ private struct MoveMetricRow: View {
 // MARK: - Highlight Tile
 
 private struct HighlightTile: View {
+    @Environment(\.responsiveScale) private var scale
     let icon: String
     let iconTint: Color
     let bgTint: Color
@@ -776,18 +781,18 @@ private struct HighlightTile: View {
             ZStack {
                 Circle()
                     .fill(bgTint)
-                    .frame(width: 38, height: 38)
+                    .frame(width: 38 * scale.value, height: 38 * scale.value)
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16 * scale.value, weight: .semibold))
                     .foregroundColor(iconTint)
             }
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(value)
-                    .font(.poppins(.bold, size: 16))
+                    .font(.poppins(.bold, size: 16 * scale.value))
                     .foregroundColor(textPrimary)
                 Text(label)
-                    .font(.poppins(.regular, size: 11))
+                    .font(.poppins(.regular, size: 11 * scale.value))
                     .foregroundColor(textSecondary)
             }
 
