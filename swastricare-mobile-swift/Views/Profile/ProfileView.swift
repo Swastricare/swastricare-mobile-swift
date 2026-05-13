@@ -264,9 +264,8 @@ struct ProfileView: View {
                 icon: "person.2",
                 label: "Family",
                 subtitle: "Manage your family group",
-                value: "Coming soon",
                 tint: aiTeal
-            ) { showFamilyComingSoon = true }
+            ) { showFamilyFromDeepLink = true }
             RowDivider()
             SettingsRow(
                 icon: "heart",

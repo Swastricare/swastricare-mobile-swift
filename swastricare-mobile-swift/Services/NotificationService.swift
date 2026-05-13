@@ -921,6 +921,18 @@ final class NotificationService: NSObject, NotificationServiceProtocol {
                 return
             }
         }
+
+        // FCM family nudge fall-through: payloads from `send-family-nudge` carry a
+        // `deep_link` field (e.g. `swastricareapp://nudge/{id}`). When the user
+        // taps the push, open the URL so the app's `.onOpenURL` handler can route
+        // to NudgeDetailView.
+        if response.actionIdentifier == UNNotificationDefaultActionIdentifier,
+           let deepLink = userInfo["deep_link"] as? String,
+           let url = URL(string: deepLink) {
+            AppAnalyticsService.shared.logNotificationTapped(notificationType: categoryIdentifier)
+            await MainActor.run { UIApplication.shared.open(url) }
+            return
+        }
         
         // Get scheduled time for history tracking
         let scheduledTime: Date

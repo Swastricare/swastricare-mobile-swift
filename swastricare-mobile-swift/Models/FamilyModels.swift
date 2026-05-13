@@ -46,9 +46,17 @@ struct FamilyMember: Codable, Identifiable, Equatable {
     let joinedAt: Date?
     let createdAt: Date?
 
-    // Joined from health_profiles
+    // Joined from health_profiles (PostgREST embed returns these inside a nested
+    // "health_profiles" object on each row — NOT at the top level).
     var fullName: String?
     var avatarUrl: String?
+    var userId: UUID?
+
+    private struct HealthProfileEmbed: Decodable {
+        let full_name: String?
+        let avatar_url: String?
+        let user_id: UUID?
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -65,8 +73,58 @@ struct FamilyMember: Codable, Identifiable, Equatable {
         case status, relationship
         case joinedAt = "joined_at"
         case createdAt = "created_at"
+        // Top-level fallbacks (in case a future query SELECTs them directly):
         case fullName = "full_name"
         case avatarUrl = "avatar_url"
+        case userId = "user_id"
+        // Embedded nested object from `.select("*, health_profiles(...)")`:
+        case healthProfiles = "health_profiles"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        familyGroupId = try c.decode(UUID.self, forKey: .familyGroupId)
+        healthProfileId = try c.decode(UUID.self, forKey: .healthProfileId)
+        addedByUserId = try c.decodeIfPresent(UUID.self, forKey: .addedByUserId)
+        role = try c.decode(FamilyRole.self, forKey: .role)
+        canView = try c.decodeIfPresent(Bool.self, forKey: .canView) ?? true
+        canEdit = try c.decodeIfPresent(Bool.self, forKey: .canEdit) ?? false
+        canAddMedications = try c.decodeIfPresent(Bool.self, forKey: .canAddMedications) ?? false
+        canAddAppointments = try c.decodeIfPresent(Bool.self, forKey: .canAddAppointments) ?? false
+        canViewMedicalDocuments = try c.decodeIfPresent(Bool.self, forKey: .canViewMedicalDocuments) ?? true
+        canManageMembers = try c.decodeIfPresent(Bool.self, forKey: .canManageMembers) ?? false
+        status = try c.decode(MemberStatus.self, forKey: .status)
+        relationship = try c.decodeIfPresent(String.self, forKey: .relationship)
+        joinedAt = try c.decodeIfPresent(Date.self, forKey: .joinedAt)
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt)
+        // Prefer nested health_profiles embed; fall back to top-level fields.
+        let embed = try? c.decodeIfPresent(HealthProfileEmbed.self, forKey: .healthProfiles)
+        fullName = embed?.full_name ?? (try? c.decodeIfPresent(String.self, forKey: .fullName))
+        avatarUrl = embed?.avatar_url ?? (try? c.decodeIfPresent(String.self, forKey: .avatarUrl))
+        userId = embed?.user_id ?? (try? c.decodeIfPresent(UUID.self, forKey: .userId))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(familyGroupId, forKey: .familyGroupId)
+        try c.encode(healthProfileId, forKey: .healthProfileId)
+        try c.encodeIfPresent(addedByUserId, forKey: .addedByUserId)
+        try c.encode(role, forKey: .role)
+        try c.encode(canView, forKey: .canView)
+        try c.encode(canEdit, forKey: .canEdit)
+        try c.encode(canAddMedications, forKey: .canAddMedications)
+        try c.encode(canAddAppointments, forKey: .canAddAppointments)
+        try c.encode(canViewMedicalDocuments, forKey: .canViewMedicalDocuments)
+        try c.encode(canManageMembers, forKey: .canManageMembers)
+        try c.encode(status, forKey: .status)
+        try c.encodeIfPresent(relationship, forKey: .relationship)
+        try c.encodeIfPresent(joinedAt, forKey: .joinedAt)
+        try c.encodeIfPresent(createdAt, forKey: .createdAt)
+        try c.encodeIfPresent(fullName, forKey: .fullName)
+        try c.encodeIfPresent(avatarUrl, forKey: .avatarUrl)
+        try c.encodeIfPresent(userId, forKey: .userId)
     }
 }
 

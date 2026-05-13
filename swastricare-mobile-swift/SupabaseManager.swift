@@ -2058,7 +2058,7 @@ extension SupabaseManager {
     func fetchFamilyMembers(groupId: UUID) async throws -> [FamilyMember] {
         let members: [FamilyMember] = try await client
             .from("family_members")
-            .select("*, health_profiles(full_name, avatar_url)")
+            .select("*, health_profiles(full_name, avatar_url, user_id)")
             .eq("family_group_id", value: groupId.uuidString)
             .eq("status", value: "active")
             .order("created_at", ascending: true)

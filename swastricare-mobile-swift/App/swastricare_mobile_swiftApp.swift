@@ -13,6 +13,9 @@ import Auth
 import FirebaseCore
 import FirebaseAnalytics
 import FirebaseCrashlytics
+#if canImport(FirebaseMessaging)
+import FirebaseMessaging
+#endif
 
 @main
 struct swastricare_mobile_swiftApp: App {
@@ -55,6 +58,9 @@ struct swastricare_mobile_swiftApp: App {
     
     // Notification permission state
     @State private var hasRequestedNotificationPermission: Bool = false
+
+    // Family nudge deep-link state (Batch 8 — push tap routes to NudgeDetailView)
+    @State private var nudgeIdToShow: String?
     
     // Splash screen minimum duration state
     @State private var isSplashDelayComplete: Bool = false
@@ -204,6 +210,13 @@ struct swastricare_mobile_swiftApp: App {
                     hasCompletedHealthProfile = false  // Reset until DB confirms
                     hasCheckedHealthProfile = false    // Force a DB check for this session
                     isCheckingHealthProfile = false    // Let the view trigger the check task
+
+                    // Family monitoring (Batch 8): register FCM device token so the
+                    // recipient can receive family nudge pushes. No-op when
+                    // FirebaseMessaging product is not yet linked.
+                    PushNotificationManager.shared.requestAuthorizationAndRegister(
+                        forUserId: authViewModel.currentUser?.id
+                    )
                 } else {
                     // User logged out - reset state completely
                     print("🔐 User logged out - resetting health profile state")
@@ -231,6 +244,12 @@ struct swastricare_mobile_swiftApp: App {
                     try? await SupabaseManager.shared.client.auth.session(from: url)
                 }
 
+                // Family nudge deep link (push tap → NudgeDetailView sheet)
+                if let nudgeId = PushNotificationManager.nudgeId(from: url) {
+                    nudgeIdToShow = nudgeId
+                    return
+                }
+
                 // Route widget/live-activity deep links
                 deepLinkHandler.handle(url)
 
@@ -238,6 +257,12 @@ struct swastricare_mobile_swiftApp: App {
                 if let deepLink = DeepLink(url: url), case .referral(let code) = deepLink {
                     authViewModel.pendingReferralCode = code
                 }
+            }
+            .sheet(item: Binding(
+                get: { nudgeIdToShow.map { IdHolder(id: $0) } },
+                set: { nudgeIdToShow = $0?.id }
+            )) { holder in
+                NudgeDetailView(nudgeId: holder.id)
             }
         }
     }
@@ -471,6 +496,14 @@ struct swastricare_mobile_swiftApp: App {
     }
 }
 
+// MARK: - Identifiable Holder (sheet binding for nudge deep-link)
+
+/// Lightweight Identifiable wrapper so the optional nudge id can drive a SwiftUI
+/// `.sheet(item:)` binding. Used by the Batch 8 family-nudge push flow.
+private struct IdHolder: Identifiable, Equatable {
+    let id: String
+}
+
 // MARK: - App Delegate
 
 class AppDelegate: NSObject, UIApplicationDelegate {
@@ -498,6 +531,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
+        // Forward APNs device token to Firebase Messaging so it can mint an
+        // FCM token used by the `device_tokens` table (family monitoring push).
+        // No-ops if FirebaseMessaging product is not linked yet.
+        #if canImport(FirebaseMessaging)
+        Messaging.messaging().apnsToken = deviceToken
+        #endif
+
         Task {
             await NotificationService.shared.handleDeviceToken(deviceToken)
         }

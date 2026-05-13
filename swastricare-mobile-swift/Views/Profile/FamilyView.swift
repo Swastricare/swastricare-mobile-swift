@@ -8,150 +8,38 @@
 import SwiftUI
 import UIKit
 
-// MARK: - Family Gradient
+// MARK: - Design Tokens (mirrors Android FamilyScreen.kt)
 
-private let familyGradient = LinearGradient(
-    colors: [Color(hex: "10B981"), Color(hex: "34D399")],
-    startPoint: .topLeading,
-    endPoint: .bottomTrailing
-)
+private let pageBg = Color.white
+private let cardBg = Color.white
+private let cardBorder = Color(red: 0.94, green: 0.94, blue: 0.96) // #E5E7EB-ish hairline
+private let subtitleColor = Color(red: 0.42, green: 0.45, blue: 0.50) // #6B7280
+private let headerColor = Color(red: 0.07, green: 0.09, blue: 0.16)   // ~#111827
+private let dangerColor = Color(red: 0.937, green: 0.267, blue: 0.267) // #EF4444
+private let aiTeal = AppColors.accentBlue // AITeal #22C5A6
 
-// MARK: - Family Hero Illustration
+// MARK: - Reusable Card Container
 
-private struct FamilyHeroIllustration: View {
-    @State private var floating = false
-
-    var body: some View {
-        ZStack {
-            // Outer glow orb
-            Circle()
-                .fill(AppColors.family.opacity(0.15))
-                .frame(width: 140, height: 140)
-                .blur(radius: 20)
-
-            // Overlapping person circles
-            ZStack {
-                // Left person
-                personCircle(color: Color(hex: "34D399"), size: 52, offset: CGSize(width: -34, height: 8))
-
-                // Right person
-                personCircle(color: Color(hex: "059669"), size: 52, offset: CGSize(width: 34, height: 8))
-
-                // Center (front) person — larger, on top
-                personCircle(color: AppColors.family, size: 62, offset: .zero)
-            }
-        }
-        .offset(y: floating ? -6 : 0)
-        .animation(
-            .easeInOut(duration: 2.2).repeatForever(autoreverses: true),
-            value: floating
-        )
-        .onAppear { floating = true }
-    }
-
-    private func personCircle(color: Color, size: CGFloat, offset: CGSize) -> some View {
-        ZStack {
-            Circle()
-                .fill(color.opacity(0.25))
-                .frame(width: size, height: size)
-                .overlay(Circle().stroke(color.opacity(0.6), lineWidth: 1.5))
-
-            Image(systemName: "person.fill")
-                .font(.poppins(.regular, size: size * 0.38))
-                .foregroundStyle(color)
-        }
-        .offset(offset)
-    }
-}
-
-// MARK: - Custom Tab Pill Picker
-
-private struct FamilyTabPicker: View {
-    @Binding var selected: FamilyTab
+private struct FlatCard<Content: View>: View {
+    var padding: CGFloat = 16
+    @ViewBuilder var content: () -> Content
 
     var body: some View {
-        HStack(spacing: 0) {
-            tabPill(tab: .create, label: "Create", icon: "plus.circle.fill")
-            tabPill(tab: .join,   label: "Join",   icon: "person.badge.plus")
-        }
-        .padding(4)
-        .glass(cornerRadius: 16)
-    }
-
-    private func tabPill(tab: FamilyTab, label: String, icon: String) -> some View {
-        Button {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
-                selected = tab
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.poppins(.semiBold, size: 13))
-                Text(label)
-                    .font(.poppins(.semiBold, size: 15))
-            }
-            .foregroundStyle(selected == tab ? .white : .secondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background(
-                Group {
-                    if selected == tab {
-                        familyGradient
-                    } else {
-                        Color.clear
-                    }
-                }
+        content()
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(cardBg)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(cardBorder, lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-        }
-        .buttonStyle(ScaleButtonStyle())
     }
 }
 
-// MARK: - Styled Text Field
+// MARK: - Primary (solid AITeal) Button
 
-private struct FamilyTextField: View {
-    let placeholder: String
-    @Binding var text: String
-    var isMonospaced: Bool = false
-    var autocapitalization: TextInputAutocapitalization = .sentences
-    var isFocused: Bool = false
-    var trailingButton: AnyView? = nil
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Group {
-                if isMonospaced {
-                    TextField(placeholder, text: $text)
-                        .font(.poppins(.regular, size: 17))
-                        .textInputAutocapitalization(autocapitalization)
-                        .autocorrectionDisabled()
-                } else {
-                    TextField(placeholder, text: $text)
-                        .textInputAutocapitalization(autocapitalization)
-                }
-            }
-            .padding(.vertical, 13)
-            .padding(.leading, 14)
-            .padding(.trailing, trailingButton == nil ? 14 : 4)
-
-            if let btn = trailingButton {
-                btn
-                    .padding(.trailing, 8)
-            }
-        }
-        .background(Color(UIColor.tertiarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(AppColors.family.opacity(isFocused ? 0.7 : 0.25), lineWidth: isFocused ? 1.5 : 1)
-        )
-    }
-}
-
-// MARK: - Gradient Action Button
-
-private struct FamilyActionButton: View {
+private struct TealPrimaryButton: View {
     let title: String
     let isLoading: Bool
     let isDisabled: Bool
@@ -159,32 +47,132 @@ private struct FamilyActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) {
+            ZStack {
                 if isLoading {
                     ProgressView()
                         .tint(.white)
-                        .scaleEffect(0.85)
+                        .scaleEffect(0.9)
+                } else {
+                    Text(title)
+                        .font(.poppins(.semiBold, size: 15))
+                        .foregroundStyle(.white)
                 }
-                Text(title)
-                    .font(.poppins(.semiBold, size: 17))
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(
-                Group {
-                    if isDisabled {
-                        Color.gray.opacity(0.3)
-                    } else {
-                        familyGradient
-                    }
-                }
-            )
-            .foregroundStyle(.white)
-            .clipShape(Capsule())
-            .shadow(color: isDisabled ? .clear : AppColors.family.opacity(0.35), radius: 8, x: 0, y: 4)
+            .frame(height: 50)
+            .background(isDisabled ? aiTeal.opacity(0.45) : aiTeal)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(.plain)
         .disabled(isDisabled)
+    }
+}
+
+// MARK: - Outlined (AITeal stroke) Button
+
+private struct TealOutlineButton: View {
+    let title: String
+    let icon: String?
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if let icon = icon {
+                    Image(systemName: icon)
+                        .font(.poppins(.semiBold, size: 15))
+                }
+                Text(title)
+                    .font(.poppins(.semiBold, size: 15))
+            }
+            .foregroundStyle(aiTeal)
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(aiTeal, lineWidth: 1.5)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Flat Outlined Text Field
+
+private struct FlatTextField: View {
+    let label: String
+    let placeholder: String
+    @Binding var text: String
+    var autocapitalization: TextInputAutocapitalization = .sentences
+
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.poppins(.medium, size: 12))
+                .foregroundStyle(focused ? aiTeal : subtitleColor)
+
+            TextField(placeholder, text: $text)
+                .font(.poppins(.regular, size: 15))
+                .textInputAutocapitalization(autocapitalization)
+                .autocorrectionDisabled()
+                .focused($focused)
+                .tint(aiTeal)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 13)
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(focused ? aiTeal : cardBorder, lineWidth: focused ? 1.5 : 1)
+                )
+        }
+    }
+}
+
+// MARK: - Better Together Banner
+
+private struct BetterTogetherBanner: View {
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .topLeading) {
+                // Full-bleed banner illustration (Android: matchParentSize + Crop)
+                Image("family-banner")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+
+                // Text overlay — sized to 55% of card width to leave room for
+                // the family illustration on the right (Android: fillMaxWidth(0.55f))
+                VStack(alignment: .leading, spacing: 6) {
+                    ZStack {
+                        Circle()
+                            .fill(aiTeal.opacity(0.18))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "person.3.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(aiTeal)
+                    }
+                    Text("Better together")
+                        .font(.poppins(.semiBold, size: 15))
+                        .foregroundStyle(headerColor)
+                    Text("Add your loved ones and help them stay on track with their medications.")
+                        .font(.poppins(.regular, size: 12))
+                        .foregroundStyle(subtitleColor)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(16)
+                .frame(width: geo.size.width * 0.55, alignment: .leading)
+            }
+        }
+        .frame(height: 160)
+        .background(aiTeal.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
 
@@ -194,34 +182,32 @@ struct FamilyView: View {
     @EnvironmentObject private var deepLinkHandler: DeepLinkHandler
     @StateObject private var vm = DependencyContainer.shared.familyViewModel
 
-    @State private var selectedTab: FamilyTab = .create
     @State private var familyName: String = ""
     @State private var showCopied = false
     @State private var showLeaveConfirmation = false
     @State private var memberToRemove: FamilyMember?
     @State private var showRemoveConfirmation = false
-    @State private var nameFieldFocused = false
-    @State private var codeFieldFocused = false
-
-    // Staggered animation
-    @State private var animateContent = false
-    @State private var animateHero = false
-    @State private var animateTitle = false
-    @State private var animateSubtitle = false
-    @State private var animatePicker = false
+    @State private var showInviteSheet = false
+    @State private var editMode = false
 
     init(initialInviteCode: String? = nil) {
         if let code = initialInviteCode, !code.isEmpty {
-            // Will be handled in onAppear
+            // Handled in onAppear via deepLinkHandler
         }
     }
 
     var body: some View {
         ZStack {
-            PremiumBackground()
+            pageBg.ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(alignment: .leading, spacing: 0) {
+                    headerBlock
+                        .padding(.horizontal, 20)
+                        .padding(.top, 4)
+
+                    Spacer().frame(height: 16)
+
                     if vm.isLoading && !vm.hasFamily {
                         loadingView
                     } else if vm.hasFamily {
@@ -229,25 +215,43 @@ struct FamilyView: View {
                     } else {
                         noFamilyView
                     }
+
+                    Spacer().frame(height: 32)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
             }
         }
-        .navigationTitle("Family")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if vm.hasFamily {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showInviteSheet = true
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(aiTeal.opacity(0.12))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: "person.badge.plus")
+                                .font(.poppins(.semiBold, size: 14))
+                                .foregroundStyle(aiTeal)
+                        }
+                    }
+                }
+            }
+        }
         .onAppear {
-            // Handle deep link invite code
             if let pending = deepLinkHandler.pendingFamilyInviteCode, !pending.isEmpty {
                 vm.joinCode = pending.trimmingCharacters(in: .whitespacesAndNewlines)
-                selectedTab = .join
             }
             deepLinkHandler.clearFamilyInviteCode()
 
             Task {
                 await vm.loadFamily()
-                triggerEntrance()
             }
+        }
+        .onChange(of: vm.hasFamily) { _, hasFamily in
+            if !hasFamily { editMode = false }
         }
         .alert("Leave Family", isPresented: $showLeaveConfirmation) {
             Button("Cancel", role: .cancel) {}
@@ -272,42 +276,43 @@ struct FamilyView: View {
                 Text("Remove \(member.fullName ?? "this member") from the family group?")
             }
         }
+        .sheet(isPresented: $showInviteSheet) {
+            inviteSheet
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
         .overlay(alignment: .top) {
             notificationBanner
         }
         .trackScreen("Family")
     }
 
-    // MARK: - Entrance Sequencing
+    // MARK: - Header
 
-    private func triggerEntrance() {
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-            animateHero = true
+    private var headerBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Family")
+                .font(.poppins(.bold, size: 30))
+                .foregroundStyle(headerColor)
+            Text("Manage your family members and their medications in one place.")
+                .font(.poppins(.regular, size: 13))
+                .foregroundStyle(subtitleColor)
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        withAnimation(.easeOut(duration: 0.45).delay(0.12)) {
-            animateTitle = true
-        }
-        withAnimation(.easeOut(duration: 0.4).delay(0.22)) {
-            animateSubtitle = true
-        }
-        withAnimation(.easeOut(duration: 0.4).delay(0.3)) {
-            animatePicker = true
-        }
-        withAnimation(.easeOut(duration: 0.5).delay(0.15)) {
-            animateContent = true
-        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Loading View
+    // MARK: - Loading
 
     private var loadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
-                .scaleEffect(1.2)
-                .tint(AppColors.family)
+                .scaleEffect(1.1)
+                .tint(aiTeal)
             Text("Loading family...")
-                .font(.poppins(.regular, size: 15))
-                .foregroundStyle(.secondary)
+                .font(.poppins(.regular, size: 14))
+                .foregroundStyle(subtitleColor)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
@@ -316,482 +321,397 @@ struct FamilyView: View {
     // MARK: - No Family View
 
     private var noFamilyView: some View {
-        VStack(spacing: 24) {
-            // Hero illustration
-            FamilyHeroIllustration()
-                .padding(.top, 16)
-                .opacity(animateHero ? 1 : 0)
-                .scaleEffect(animateHero ? 1 : 0.6)
+        VStack(spacing: 20) {
+            BetterTogetherBanner()
+                .padding(.horizontal, 16)
 
-            // Title & subtitle
-            VStack(spacing: 8) {
-                Text("Family Health")
-                    .font(.poppins(.bold, size: 28))
-                    .foregroundStyle(familyGradient)
-                    .opacity(animateTitle ? 1 : 0)
-                    .offset(y: animateTitle ? 0 : 14)
-
-                Text("Create a family group or join one to share\nand manage health data together.")
-                    .font(.poppins(.regular, size: 15))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .opacity(animateSubtitle ? 1 : 0)
-                    .offset(y: animateSubtitle ? 0 : 10)
-            }
-
-            // Custom tab picker
-            FamilyTabPicker(selected: $selectedTab)
-                .opacity(animatePicker ? 1 : 0)
-                .offset(y: animatePicker ? 0 : 8)
-
-            // Cards
-            if selectedTab == .create {
-                createFamilyCard
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .leading).combined(with: .opacity),
-                        removal: .move(edge: .leading).combined(with: .opacity)
-                    ))
-            } else {
-                joinFamilyCard
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .trailing).combined(with: .opacity)
-                    ))
-            }
-        }
-        .animation(.spring(response: 0.38, dampingFraction: 0.75), value: selectedTab)
-    }
-
-    // MARK: - Create Family Card
-
-    private var createFamilyCard: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            // Header row
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(AppColors.family.opacity(0.15))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "plus.circle.fill")
-                        .font(.poppins(.regular, size: 18))
-                        .foregroundStyle(AppColors.family)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Create Your Family")
-                        .font(.poppins(.semiBold, size: 17))
-                        .foregroundStyle(.primary)
-                    Text("Start a group and invite members")
+            // Create family card
+            FlatCard {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Create your family")
+                        .font(.poppins(.semiBold, size: 15))
+                        .foregroundStyle(headerColor)
+                    Text("Start a new family group and invite your loved ones.")
                         .font(.poppins(.regular, size: 12))
-                        .foregroundStyle(.secondary)
-                }
-            }
+                        .foregroundStyle(subtitleColor)
 
-            FamilyTextField(
-                placeholder: "Family name (e.g., Sharma Family)",
-                text: $familyName,
-                autocapitalization: .words,
-                isFocused: nameFieldFocused
-            )
-            .onTapGesture { nameFieldFocused = true }
+                    FlatTextField(
+                        label: "Group name",
+                        placeholder: "e.g. Sharma Family",
+                        text: $familyName,
+                        autocapitalization: .words
+                    )
 
-            FamilyActionButton(
-                title: "Create Family",
-                isLoading: vm.isLoading,
-                isDisabled: familyName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || vm.isLoading
-            ) {
-                Task { await vm.createFamily(name: familyName) }
-            }
-        }
-        .padding(20)
-        .glass()
-    }
-
-    // MARK: - Join Family Card
-
-    private var joinFamilyCard: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            // Header row
-            HStack(spacing: 10) {
-                ZStack {
-                    Circle()
-                        .fill(AppColors.family.opacity(0.15))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "person.badge.plus")
-                        .font(.poppins(.regular, size: 18))
-                        .foregroundStyle(AppColors.family)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Join a Family")
-                        .font(.poppins(.semiBold, size: 17))
-                        .foregroundStyle(.primary)
-                    Text("Enter the code shared by the group owner")
-                        .font(.poppins(.regular, size: 12))
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            FamilyTextField(
-                placeholder: "Invite code (e.g., ABC12345)",
-                text: $vm.joinCode,
-                isMonospaced: true,
-                autocapitalization: .characters,
-                isFocused: codeFieldFocused,
-                trailingButton: AnyView(
-                    Button {
-                        vm.joinCode = (UIPasteboard.general.string ?? "")
-                            .trimmingCharacters(in: .whitespacesAndNewlines)
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "doc.on.clipboard")
-                                .font(.poppins(.regular, size: 13))
-                            Text("Paste")
-                                .font(.poppins(.medium, size: 12))
-                        }
-                        .foregroundStyle(AppColors.family)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(AppColors.family.opacity(0.12))
-                        .clipShape(Capsule())
+                    TealPrimaryButton(
+                        title: "Create Family Group",
+                        isLoading: vm.isLoading,
+                        isDisabled: familyName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || vm.isLoading
+                    ) {
+                        Task { await vm.createFamily(name: familyName) }
                     }
-                    .buttonStyle(ScaleButtonStyle())
-                )
-            )
-            .onTapGesture { codeFieldFocused = true }
-
-            FamilyActionButton(
-                title: "Join Family",
-                isLoading: vm.isJoining,
-                isDisabled: vm.joinCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || vm.isJoining
-            ) {
-                Task { await vm.joinFamily() }
+                }
             }
+            .padding(.horizontal, 16)
+
+            // "or" divider
+            HStack(spacing: 12) {
+                Rectangle()
+                    .fill(cardBorder)
+                    .frame(height: 1)
+                Text("or")
+                    .font(.poppins(.regular, size: 12))
+                    .foregroundStyle(subtitleColor)
+                Rectangle()
+                    .fill(cardBorder)
+                    .frame(height: 1)
+            }
+            .padding(.horizontal, 32)
+            .padding(.vertical, 4)
+
+            // Join family card
+            FlatCard {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Join with invite code")
+                        .font(.poppins(.semiBold, size: 15))
+                        .foregroundStyle(headerColor)
+                    Text("Already have an invite? Enter the code to join your family's health group.")
+                        .font(.poppins(.regular, size: 12))
+                        .foregroundStyle(subtitleColor)
+
+                    FlatTextField(
+                        label: "Invite code",
+                        placeholder: "e.g. ABC123",
+                        text: $vm.joinCode,
+                        autocapitalization: .characters
+                    )
+
+                    TealPrimaryButton(
+                        title: "Join Group",
+                        isLoading: vm.isJoining,
+                        isDisabled: vm.joinCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || vm.isJoining
+                    ) {
+                        Task { await vm.joinFamily() }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
         }
-        .padding(20)
-        .glass()
     }
 
-    // MARK: - Family Group View (has family)
+    // MARK: - Has Family View
 
     private var familyGroupView: some View {
         VStack(spacing: 20) {
-            // Group Header
-            groupHeaderCard
-                .opacity(animateContent ? 1 : 0)
-                .offset(y: animateContent ? 0 : -18)
-                .animation(.spring(response: 0.5, dampingFraction: 0.75), value: animateContent)
+            BetterTogetherBanner()
+                .padding(.horizontal, 16)
 
-            // Invite Section
-            inviteCard
-                .opacity(animateContent ? 1 : 0)
-                .offset(y: animateContent ? 0 : 20)
-                .animation(.spring(response: 0.5, dampingFraction: 0.75).delay(0.08), value: animateContent)
-
-            // Members Section
-            membersCard
-                .opacity(animateContent ? 1 : 0)
-                .offset(y: animateContent ? 0 : 25)
-                .animation(.spring(response: 0.5, dampingFraction: 0.75).delay(0.14), value: animateContent)
-
-            // Leave Group Button (not for owner)
-            if !vm.isOwner {
-                leaveButton
-                    .opacity(animateContent ? 1 : 0)
-                    .offset(y: animateContent ? 0 : 30)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.75).delay(0.2), value: animateContent)
-            }
-        }
-    }
-
-    // MARK: - Group Header Card
-
-    private var groupHeaderCard: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 16) {
-                // Emerald accent bar
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(familyGradient)
-                    .frame(width: 4)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(vm.familyGroup?.name ?? "My Family")
-                        .font(.poppins(.bold, size: 22))
-                        .foregroundStyle(.primary)
-
-                    HStack(spacing: 8) {
-                        // Member count badge
-                        HStack(spacing: 4) {
-                            Image(systemName: "person.2.fill")
-                                .font(.poppins(.regular, size: 10))
-                            Text("\(vm.memberCount) member\(vm.memberCount == 1 ? "" : "s")")
-                                .font(.poppins(.medium, size: 12))
-                        }
-                        .foregroundStyle(AppColors.family)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(AppColors.family.opacity(0.12))
-                        .clipShape(Capsule())
-
-                        // Role badge
-                        if let role = vm.currentMemberRole {
-                            HStack(spacing: 4) {
-                                Image(systemName: role.icon)
-                                    .font(.poppins(.regular, size: 9))
-                                Text(role.displayName)
-                                    .font(.poppins(.medium, size: 12))
-                            }
-                            .foregroundStyle(role.color)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 4)
-                            .background(role.color.opacity(0.12))
-                            .clipShape(Capsule())
-                        }
-                    }
-                }
-
+            // "Your Family" header
+            HStack {
+                Text("Your Family")
+                    .font(.poppins(.semiBold, size: 16))
+                    .foregroundStyle(headerColor)
                 Spacer()
-
-                // Family icon cluster
-                ZStack {
-                    Circle()
-                        .fill(AppColors.family.opacity(0.12))
-                        .frame(width: 52, height: 52)
-                    Image(systemName: "person.3.fill")
-                        .font(.poppins(.regular, size: 22))
-                        .foregroundStyle(AppColors.family)
+                if vm.isOwner {
+                    Button {
+                        editMode.toggle()
+                    } label: {
+                        Text(editMode ? "Done" : "Edit")
+                            .font(.poppins(.semiBold, size: 14))
+                            .foregroundStyle(aiTeal)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
+            .padding(.horizontal, 20)
+
+            // Member rows
+            VStack(spacing: 8) {
+                if vm.members.isEmpty {
+                    FlatCard {
+                        Text("No members yet. Tap the invite icon to share your code.")
+                            .font(.poppins(.regular, size: 13))
+                            .foregroundStyle(subtitleColor)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.horizontal, 16)
+                } else {
+                    ForEach(vm.members, id: \.id) { member in
+                        memberRowWrapper(member: member)
+                    }
+                }
+            }
+
+            // Add member button
+            VStack(spacing: 6) {
+                TealOutlineButton(title: "Add Family Member", icon: "plus") {
+                    showInviteSheet = true
+                }
+                .padding(.horizontal, 16)
+
+                Text("Invite and manage family members")
+                    .font(.poppins(.regular, size: 12))
+                    .foregroundStyle(subtitleColor)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .padding(.top, 8)
         }
-        .padding(20)
-        .glass()
     }
 
-    // MARK: - Invite Card
+    // MARK: - Member Row
 
-    private var inviteCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Label("Invite Members", systemImage: "envelope.badge.fill")
-                .font(.poppins(.semiBold, size: 17))
-                .foregroundStyle(AppColors.family)
+    @ViewBuilder
+    private func memberRowWrapper(member: FamilyMember) -> some View {
+        let canRemove = editMode && member.role != .owner
 
-            if !vm.inviteCode.isEmpty {
-                // Code display with green glow
-                ZStack {
-                    // Subtle glow behind code
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(AppColors.family.opacity(0.08))
-                        .blur(radius: 8)
-
-                    HStack {
-                        Text(vm.inviteCode)
-                            .font(.poppins(.bold, size: 20))
-                            .tracking(4)
-                            .foregroundStyle(.primary)
-                            .shimmer()
-
-                        Spacer()
-
-                        // Copy icon button with checkmark animation
-                        Button {
-                            UIPasteboard.general.string = vm.inviteCode
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                showCopied = true
-                            }
-                        } label: {
-                            ZStack {
-                                Circle()
-                                    .fill(AppColors.family.opacity(0.15))
-                                    .frame(width: 38, height: 38)
-                                Image(systemName: showCopied ? "checkmark" : "doc.on.doc.fill")
-                                    .font(.poppins(.semiBold, size: 14))
-                                    .foregroundStyle(showCopied ? .green : AppColors.family)
-                                    .animation(.spring(response: 0.25, dampingFraction: 0.65), value: showCopied)
-                            }
-                        }
-                        .buttonStyle(ScaleButtonStyle())
+        if editMode {
+            memberRow(member: member, canRemove: canRemove, isInEditMode: true)
+                .padding(.horizontal, 16)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if canRemove {
+                        memberToRemove = member
+                        showRemoveConfirmation = true
                     }
-                    .padding(14)
-                    .background(Color(UIColor.tertiarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(AppColors.family.opacity(0.25), lineWidth: 1)
-                    )
                 }
+        } else {
+            NavigationLink {
+                FamilyMemberDashboardView(
+                    targetHealthProfileId: member.healthProfileId.uuidString
+                )
+            } label: {
+                memberRow(member: member, canRemove: false, isInEditMode: false)
+                    .padding(.horizontal, 16)
+            }
+            .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture().onEnded {
+                AppAnalyticsService.shared.logFamilyMemberViewed()
+            })
+        }
+    }
 
-                // Share & Regenerate Buttons
-                HStack(spacing: 12) {
-                    ShareLink(item: vm.shareLink) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "square.and.arrow.up")
-                                .font(.poppins(.semiBold, size: 14))
-                            Text("Share Link")
-                                .font(.poppins(.semiBold, size: 15))
+    private func memberRow(member: FamilyMember, canRemove: Bool, isInEditMode: Bool) -> some View {
+        let displayName = member.fullName ?? "Member"
+        let subtitle: String = {
+            switch member.role {
+            case .owner: return "Group owner"
+            case .caregiver: return "Caregiver"
+            case .viewer: return "Viewer"
+            case .limited: return "Limited"
+            }
+        }()
+
+        return HStack(spacing: 12) {
+            // Avatar — prefer the member's avatar URL from the embedded
+            // health_profiles row; fall back to initials in a teal circle when
+            // unavailable or while loading.
+            ZStack {
+                Circle()
+                    .fill(aiTeal.opacity(0.15))
+                    .frame(width: 44, height: 44)
+
+                if let urlString = member.avatarUrl,
+                   !urlString.isEmpty,
+                   let url = URL(string: urlString) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .empty, .failure:
+                            Text(memberInitials(member))
+                                .font(.poppins(.bold, size: 13))
+                                .foregroundStyle(aiTeal)
+                        @unknown default:
+                            Text(memberInitials(member))
+                                .font(.poppins(.bold, size: 13))
+                                .foregroundStyle(aiTeal)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 11)
-                        .background(familyGradient)
-                        .foregroundStyle(.white)
-                        .clipShape(Capsule())
-                        .shadow(color: AppColors.family.opacity(0.3), radius: 6, x: 0, y: 3)
                     }
-                    .buttonStyle(ScaleButtonStyle())
-                    .simultaneousGesture(TapGesture().onEnded {
-                        AppAnalyticsService.shared.logFamilyInviteSent()
-                    })
+                    .frame(width: 44, height: 44)
+                    .clipShape(Circle())
+                } else {
+                    Text(memberInitials(member))
+                        .font(.poppins(.bold, size: 13))
+                        .foregroundStyle(aiTeal)
+                }
+            }
 
+            // Name + subtitle
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 8) {
+                    Text(displayName)
+                        .font(.poppins(.semiBold, size: 15))
+                        .foregroundStyle(headerColor)
+
+                    if member.role == .owner {
+                        Text("OWNER")
+                            .font(.poppins(.semiBold, size: 10))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(aiTeal)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    } else {
+                        Text(member.role.displayName.uppercased())
+                            .font(.poppins(.semiBold, size: 10))
+                            .foregroundStyle(Color(red: 0.30, green: 0.34, blue: 0.40))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(Color(white: 0.95))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+                Text(subtitle)
+                    .font(.poppins(.regular, size: 12))
+                    .foregroundStyle(subtitleColor)
+            }
+
+            Spacer()
+
+            // Trailing icon
+            if isInEditMode {
+                if canRemove {
+                    Image(systemName: "trash")
+                        .font(.poppins(.regular, size: 16))
+                        .foregroundStyle(dangerColor)
+                        .frame(width: 22, height: 22)
+                } else {
+                    Color.clear.frame(width: 22, height: 22)
+                }
+            } else {
+                Image(systemName: "chevron.right")
+                    .font(.poppins(.semiBold, size: 13))
+                    .foregroundStyle(subtitleColor)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(cardBg)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(cardBorder, lineWidth: 1)
+        )
+    }
+
+    // MARK: - Invite Sheet
+
+    private var inviteSheet: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // Title + description
+                VStack(spacing: 6) {
+                    Text("Invite a member")
+                        .font(.poppins(.semiBold, size: 18))
+                        .foregroundStyle(headerColor)
+                    Text("Share this code with anyone you want to add to your family group.")
+                        .font(.poppins(.regular, size: 13))
+                        .foregroundStyle(subtitleColor)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 16)
+
+                // Code box
+                Button {
+                    if !vm.inviteCode.isEmpty {
+                        UIPasteboard.general.string = vm.inviteCode
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            showCopied = true
+                        }
+                        AppAnalyticsService.shared.logFamilyInviteSent()
+                    }
+                } label: {
+                    VStack(spacing: 6) {
+                        Text("INVITE CODE")
+                            .font(.poppins(.semiBold, size: 11))
+                            .tracking(1.5)
+                            .foregroundStyle(subtitleColor)
+                        Text(vm.inviteCode.isEmpty ? "------" : vm.inviteCode)
+                            .font(.poppins(.bold, size: 32))
+                            .tracking(6)
+                            .foregroundStyle(aiTeal)
+                        HStack(spacing: 4) {
+                            Image(systemName: showCopied ? "checkmark" : "doc.on.doc")
+                                .font(.poppins(.regular, size: 11))
+                            Text(showCopied ? "Code copied" : "Tap to copy code")
+                                .font(.poppins(.medium, size: 11))
+                        }
+                        .foregroundStyle(aiTeal)
+                    }
+                    .padding(.vertical, 20)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity)
+                    .background(aiTeal.opacity(0.10))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
+                .buttonStyle(.plain)
+                .disabled(vm.inviteCode.isEmpty)
+
+                // Actions row
+                HStack(spacing: 12) {
                     if vm.isOwner {
                         Button {
                             Task { await vm.regenerateCode() }
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "arrow.triangle.2.circlepath")
-                                    .font(.poppins(.semiBold, size: 13))
-                                Text("New Code")
+                                    .font(.poppins(.semiBold, size: 14))
+                                Text("Generate")
                                     .font(.poppins(.semiBold, size: 15))
                             }
+                            .foregroundStyle(aiTeal)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 11)
-                            .background(AppColors.family.opacity(0.12))
-                            .foregroundStyle(AppColors.family)
-                            .clipShape(Capsule())
+                            .frame(height: 52)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(aiTeal, lineWidth: 1.5)
+                            )
                         }
-                        .buttonStyle(ScaleButtonStyle())
+                        .buttonStyle(.plain)
                     }
+
+                    ShareLink(item: vm.shareLink) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "doc.on.doc")
+                                .font(.poppins(.semiBold, size: 14))
+                            Text("Copy Link")
+                                .font(.poppins(.semiBold, size: 15))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(aiTeal)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                    .simultaneousGesture(TapGesture().onEnded {
+                        AppAnalyticsService.shared.logFamilyInviteSent()
+                    })
                 }
-            } else {
-                Text("No invite code available.")
-                    .font(.poppins(.regular, size: 15))
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(20)
-        .glass()
-    }
 
-    // MARK: - Members Card
-
-    private var membersCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label("Members", systemImage: "person.2.fill")
-                .font(.poppins(.semiBold, size: 17))
-                .foregroundStyle(AppColors.family)
-
-            if vm.members.isEmpty {
-                Text("No members yet. Share your invite code to get started.")
-                    .font(.poppins(.regular, size: 15))
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
-            } else {
-                ForEach(Array(vm.members.enumerated()), id: \.element.id) { index, member in
-                    memberRow(member: member, index: index)
-
-                    if index < vm.members.count - 1 {
-                        Divider()
-                            .padding(.leading, 56)
+                if !vm.isOwner {
+                    Button {
+                        showInviteSheet = false
+                        showLeaveConfirmation = true
+                    } label: {
+                        Text("Leave Family Group")
+                            .font(.poppins(.medium, size: 15))
+                            .foregroundStyle(dangerColor)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
                     }
-                }
-            }
-        }
-        .padding(20)
-        .glass()
-    }
-
-    // MARK: - Member Row
-
-    private func memberRow(member: FamilyMember, index: Int) -> some View {
-        HStack(spacing: 12) {
-            // Gradient avatar circle
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [member.role.color, member.role.color.opacity(0.5)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 44, height: 44)
-                    .shadow(color: member.role.color.opacity(0.25), radius: 4, x: 0, y: 2)
-
-                Text(memberInitial(member))
-                    .font(.poppins(.bold, size: 17))
-                    .foregroundStyle(.white)
-            }
-
-            // Name & badges
-            VStack(alignment: .leading, spacing: 4) {
-                Text(member.fullName ?? "Unknown")
-                    .font(.poppins(.semiBold, size: 15))
-
-                HStack(spacing: 6) {
-                    // Role pill
-                    HStack(spacing: 3) {
-                        Image(systemName: member.role.icon)
-                            .font(.poppins(.regular, size: 9))
-                        Text(member.role.displayName)
-                            .font(.poppins(.semiBold, size: 11))
-                    }
-                    .foregroundStyle(member.role.color)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(member.role.color.opacity(0.12))
-                    .clipShape(Capsule())
-
-                    if let relationship = member.relationship, !relationship.isEmpty {
-                        Text(relationship)
-                            .font(.poppins(.regular, size: 11))
-                            .foregroundStyle(.secondary)
-                    }
+                    .buttonStyle(.plain)
                 }
             }
-
-            Spacer()
-
-            // Remove button (owner only, can't remove self)
-            if vm.isOwner && member.role != .owner {
-                Button {
-                    memberToRemove = member
-                    showRemoveConfirmation = true
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.poppins(.semiBold, size: 20))
-                        .foregroundStyle(.red.opacity(0.7))
-                }
-                .buttonStyle(ScaleButtonStyle())
-            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 32)
         }
-        .padding(.vertical, 4)
-        .opacity(animateContent ? 1 : 0)
-        .offset(x: animateContent ? 0 : -20)
-        .animation(
-            .spring(response: 0.45, dampingFraction: 0.72).delay(0.18 + Double(index) * 0.07),
-            value: animateContent
-        )
-        .onTapGesture {
-            AppAnalyticsService.shared.logFamilyMemberViewed()
-        }
-    }
-
-    // MARK: - Leave Button
-
-    private var leaveButton: some View {
-        Button {
-            showLeaveConfirmation = true
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "rectangle.portrait.and.arrow.right")
-                    .font(.poppins(.medium, size: 14))
-                Text("Leave Family Group")
-                    .font(.poppins(.medium, size: 17))
-            }
-            .foregroundStyle(.red)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(Color.red.opacity(0.08))
-            .clipShape(Capsule())
-            .overlay(Capsule().stroke(Color.red.opacity(0.2), lineWidth: 1))
-        }
-        .buttonStyle(ScaleButtonStyle())
+        .background(Color.white)
     }
 
     // MARK: - Notification Banner
@@ -799,7 +719,7 @@ struct FamilyView: View {
     @ViewBuilder
     private var notificationBanner: some View {
         if let errorMsg = vm.error {
-            bannerView(text: errorMsg, color: .red, icon: "exclamationmark.triangle.fill")
+            bannerView(text: errorMsg, color: dangerColor, icon: "exclamationmark.triangle.fill")
                 .onTapGesture { vm.clearError() }
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
@@ -807,7 +727,7 @@ struct FamilyView: View {
                     }
                 }
         } else if let successMsg = vm.successMessage {
-            bannerView(text: successMsg, color: AppColors.family, icon: "checkmark.circle.fill")
+            bannerView(text: successMsg, color: aiTeal, icon: "checkmark.circle.fill")
                 .onTapGesture { vm.clearSuccess() }
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
@@ -815,7 +735,7 @@ struct FamilyView: View {
                     }
                 }
         } else if showCopied {
-            bannerView(text: "Invite code copied!", color: AppColors.family, icon: "doc.on.doc.fill")
+            bannerView(text: "Invite code copied!", color: aiTeal, icon: "doc.on.doc.fill")
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -829,15 +749,18 @@ struct FamilyView: View {
     private func bannerView(text: String, color: Color, icon: String) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.poppins(.regular, size: 15))
+                .font(.poppins(.regular, size: 14))
             Text(text)
-                .font(.poppins(.regular, size: 15))
+                .font(.poppins(.regular, size: 14))
                 .lineLimit(2)
         }
         .foregroundStyle(color)
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: Capsule())
+        .background(Color.white)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(color.opacity(0.25), lineWidth: 1))
+        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
         .padding(.top, 8)
         .transition(.opacity.combined(with: .move(edge: .top)))
         .animation(.easeInOut(duration: 0.25), value: vm.error)
@@ -847,19 +770,14 @@ struct FamilyView: View {
 
     // MARK: - Helpers
 
-    private func memberInitial(_ member: FamilyMember) -> String {
-        if let name = member.fullName, let first = name.first {
-            return String(first).uppercased()
+    private func memberInitials(_ member: FamilyMember) -> String {
+        guard let name = member.fullName, !name.isEmpty else { return "?" }
+        let parts = name.split(separator: " ")
+        if parts.count >= 2, let f = parts[0].first, let s = parts[1].first {
+            return "\(f)\(s)".uppercased()
         }
-        return "?"
+        return String(name.prefix(2)).uppercased()
     }
-}
-
-// MARK: - Family Tab
-
-private enum FamilyTab {
-    case create
-    case join
 }
 
 // MARK: - Preview
